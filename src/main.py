@@ -1,6 +1,9 @@
 import asyncio
 import logging
+import os
 import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -8,18 +11,37 @@ from aiogram.enums import ParseMode
 from aiogram.types import BotCommand
 
 from bot import setup_handlers
-from config import BOT_TOKEN
+from config import BOT_TOKEN, TIMEZONE
 from database import Database
 from services import SyncScheduler
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-    ]
-)
+
+def setup_logging() -> None:
+    """Настраивает логирование в консоль и файл."""
+    # Получаем текущую дату по МСК
+    tz = ZoneInfo(TIMEZONE)
+    date_str = datetime.now(tz).strftime("%Y-%m-%d")
+    
+    # Создаем директорию для логов
+    log_dir = f"logs/{date_str}"
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = f"{log_dir}/log.log"
+    
+    # Формат логов
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    
+    # Настраиваем логирование
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_file, encoding="utf-8"),
+        ]
+    )
+
+
+setup_logging()
 logger = logging.getLogger(__name__)
 
 

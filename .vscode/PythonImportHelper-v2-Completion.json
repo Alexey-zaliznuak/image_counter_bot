@@ -177,6 +177,14 @@
         "documentation": {}
     },
     {
+        "label": "TIMEZONE",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
         "label": "Database",
         "importPath": "database",
         "description": "database",
@@ -232,6 +240,22 @@
         "description": "datetime",
         "isExtraImport": true,
         "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "ZoneInfo",
+        "importPath": "zoneinfo",
+        "description": "zoneinfo",
+        "isExtraImport": true,
+        "detail": "zoneinfo",
         "documentation": {}
     },
     {
@@ -438,6 +462,15 @@
         "description": "src.services.sheets",
         "peekOfCode": "SCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\nclass GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None\n    def _get_service(self) -> Any:\n        \"\"\"Создает и возвращает сервис Google Sheets API.\"\"\"\n        if self._service is None:",
         "detail": "src.services.sheets",
+        "documentation": {}
+    },
+    {
+        "label": "setup_logging",
+        "kind": 2,
+        "importPath": "src.main",
+        "description": "src.main",
+        "peekOfCode": "def setup_logging() -> None:\n    \"\"\"Настраивает логирование в консоль и файл.\"\"\"\n    # Получаем текущую дату по МСК\n    tz = ZoneInfo(TIMEZONE)\n    date_str = datetime.now(tz).strftime(\"%Y-%m-%d\")\n    # Создаем директорию для логов\n    log_dir = f\"logs/{date_str}\"\n    os.makedirs(log_dir, exist_ok=True)\n    log_file = f\"{log_dir}/log.log\"\n    # Формат логов",
+        "detail": "src.main",
         "documentation": {}
     },
     {
