@@ -34,9 +34,9 @@ class GoogleSheetsService:
             self._service = build("sheets", "v4", credentials=credentials)
         return self._service
 
-    def _format_chat_topic(self, chat_id: int, topic_id: int) -> str:
-        """Форматирует название столбца: ChatId(TopicId)."""
-        return f"{chat_id}({topic_id})"
+    def _get_column_name(self, chat_id: int, topic_id: int) -> str:
+        """Возвращает название столбца: 'Название чата | Название топика'."""
+        return self.db.get_display_name(chat_id, topic_id)
 
     def _ensure_sheet_exists(self) -> None:
         """Создает лист, если он не существует."""
@@ -117,9 +117,9 @@ class GoogleSheetsService:
             logger.info("Нет данных для синхронизации")
             return
 
-        # Формируем заголовки: Дата, ChatId1(TopicId1), ChatId1(TopicId2), ...
+        # Формируем заголовки: Дата, Название чата | Название топика, ...
         headers = ["Дата"] + [
-            self._format_chat_topic(chat_id, topic_id)
+            self._get_column_name(chat_id, topic_id)
             for chat_id, topic_id in chat_topics
         ]
 

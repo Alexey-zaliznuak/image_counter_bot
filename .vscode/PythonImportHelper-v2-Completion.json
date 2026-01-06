@@ -351,6 +351,15 @@
         "documentation": {}
     },
     {
+        "label": "update_titles_from_message",
+        "kind": 2,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "def update_titles_from_message(message: Message) -> None:\n    \"\"\"Обновляет названия чата и топика из сообщения.\"\"\"\n    if _db is None:\n        return\n    chat_id = message.chat.id\n    topic_id = get_topic_id(message)\n    # Обновляем название чата\n    if message.chat.title:\n        _db.update_chat_title(chat_id, message.chat.title)\n    # Обновляем название топика если это системное сообщение о создании/редактировании",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
         "label": "setup_handlers",
         "kind": 2,
         "importPath": "src.bot.handlers",
@@ -436,7 +445,7 @@
         "kind": 5,
         "importPath": "src.main",
         "description": "src.main",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nasync def set_bot_commands(bot: Bot) -> None:\n    \"\"\"Устанавливает команды бота для меню.\"\"\"\n    commands = [\n        BotCommand(command=\"id\", description=\"Показать ID чата и топика\"),\n        BotCommand(command=\"set_chat_active\", description=\"Активировать отслеживание чата\"),\n        BotCommand(command=\"set_chat_inactive\", description=\"Деактивировать отслеживание чата\"),\n    ]\n    await bot.set_my_commands(commands)\n    logger.info(\"Команды бота установлены\")",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nasync def set_bot_commands(bot: Bot) -> None:\n    \"\"\"Устанавливает команды бота для меню.\"\"\"\n    commands = [\n        BotCommand(command=\"id\", description=\"Показать ID чата и топика\"),\n        BotCommand(command=\"set_chat_active\", description=\"Активировать отслеживание чата\"),\n        BotCommand(command=\"set_chat_inactive\", description=\"Деактивировать отслеживание чата\"),\n        BotCommand(command=\"set_topic_name\", description=\"Задать название топика\"),\n    ]\n    await bot.set_my_commands(commands)",
         "detail": "src.main",
         "documentation": {}
     }

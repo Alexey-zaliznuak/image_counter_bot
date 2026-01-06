@@ -47,6 +47,24 @@ class Database:
                 )
             """)
             
+            # Таблица названий чатов
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chat_titles (
+                    chat_id INTEGER PRIMARY KEY,
+                    title TEXT NOT NULL
+                )
+            """)
+            
+            # Таблица названий топиков
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS topic_titles (
+                    chat_id INTEGER NOT NULL,
+                    topic_id INTEGER NOT NULL,
+                    title TEXT NOT NULL,
+                    PRIMARY KEY (chat_id, topic_id)
+                )
+            """)
+            
             conn.commit()
 
     def _get_current_date(self) -> str:
@@ -149,15 +167,16 @@ class Database:
     def get_unique_chat_topics(self) -> list[tuple[int, int]]:
         """
         Возвращает уникальные комбинации (chat_id, topic_id) из image_counts.
-        Отсортировано по chat_id, topic_id.
+        Отсортировано по порядку первого появления (новые в конце).
         """
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT DISTINCT chat_id, topic_id
+                SELECT chat_id, topic_id
                 FROM image_counts
-                ORDER BY chat_id, topic_id
+                GROUP BY chat_id, topic_id
+                ORDER BY MIN(rowid)
                 """
             )
             return [(row["chat_id"], row["topic_id"]) for row in cursor.fetchall()]
@@ -188,4 +207,61 @@ class Database:
             )
             row = cursor.fetchone()
             return row["count"] if row else 0
+
+    def update_chat_title(self, chat_id: int, title: str) -> None:
+        """Обновляет название чата (INSERT OR REPLACE)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO chat_titles (chat_id, title) VALUES (?, ?)
+                ON CONFLICT(chat_id) DO UPDATE SET title = ?
+                """,
+                (chat_id, title, title)
+            )
+            conn.commit()
+
+    def update_topic_title(self, chat_id: int, topic_id: int, title: str) -> None:
+        """Обновляет название топика (INSERT OR REPLACE)."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO topic_titles (chat_id, topic_id, title) VALUES (?, ?, ?)
+                ON CONFLICT(chat_id, topic_id) DO UPDATE SET title = ?
+                """,
+                (chat_id, topic_id, title, title)
+            )
+            conn.commit()
+
+    def get_chat_title(self, chat_id: int) -> str:
+        """Возвращает название чата или его ID если название не найдено."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT title FROM chat_titles WHERE chat_id = ?",
+                (chat_id,)
+            )
+            row = cursor.fetchone()
+            return row["title"] if row else str(chat_id)
+
+    def get_topic_title(self, chat_id: int, topic_id: int) -> str:
+        """Возвращает название топика или 'General'/'Топик N' если не найдено."""
+        if topic_id == 0:
+            return "General"
+        
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT title FROM topic_titles WHERE chat_id = ? AND topic_id = ?",
+                (chat_id, topic_id)
+            )
+            row = cursor.fetchone()
+            return row["title"] if row else f"Топик {topic_id}"
+
+    def get_display_name(self, chat_id: int, topic_id: int) -> str:
+        """Возвращает отображаемое имя в формате 'Название чата | Название топика'."""
+        chat_title = self.get_chat_title(chat_id)
+        topic_title = self.get_topic_title(chat_id, topic_id)
+        return f"{chat_title} | {topic_title}"
 

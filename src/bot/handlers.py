@@ -75,6 +75,70 @@ async def cmd_set_chat_inactive(message: Message) -> None:
         await message.reply(f"ℹ️ Чат {chat_id} не был в списке отслеживаемых")
 
 
+@router.message(Command("set_topic_name"))
+async def cmd_set_topic_name(message: Message) -> None:
+    """
+    Обработчик команды /set_topic_name - устанавливает название топика.
+    Использование: /set_topic_name Название топика
+    """
+    if _db is None:
+        await message.reply("❌ Ошибка: база данных не инициализирована")
+        return
+
+    chat_id = message.chat.id
+    topic_id = get_topic_id(message)
+    
+    # Извлекаем название из текста команды
+    if message.text:
+        parts = message.text.split(maxsplit=1)
+        if len(parts) > 1:
+            topic_name = parts[1].strip()
+            _db.update_topic_title(chat_id, topic_id, topic_name)
+            await message.reply(f"✅ Название топика установлено: {topic_name}")
+            logger.info(f"Название топика установлено: {topic_name} (chat_id={chat_id}, topic_id={topic_id})")
+            return
+    
+    await message.reply("❌ Использование: /set_topic_name Название топика")
+
+
+def update_titles_from_message(message: Message) -> None:
+    """Обновляет названия чата и топика из сообщения."""
+    if _db is None:
+        return
+    
+    chat_id = message.chat.id
+    topic_id = get_topic_id(message)
+    
+    # Обновляем название чата
+    if message.chat.title:
+        _db.update_chat_title(chat_id, message.chat.title)
+    
+    # Обновляем название топика если это системное сообщение о создании/редактировании
+    if message.forum_topic_created:
+        _db.update_topic_title(chat_id, topic_id, message.forum_topic_created.name)
+        logger.info(f"Топик создан: {message.forum_topic_created.name} в чате {chat_id}")
+    
+    if message.forum_topic_edited and message.forum_topic_edited.name:
+        _db.update_topic_title(chat_id, topic_id, message.forum_topic_edited.name)
+        logger.info(f"Топик переименован: {message.forum_topic_edited.name} в чате {chat_id}")
+    
+    # Получаем название топика из reply_to_message (работает для существующих топиков)
+    if (
+        topic_id != 0
+        and message.reply_to_message
+        and message.reply_to_message.forum_topic_created
+    ):
+        topic_name = message.reply_to_message.forum_topic_created.name
+        _db.update_topic_title(chat_id, topic_id, topic_name)
+        logger.info(f"Название топика получено: {topic_name} в чате {chat_id}")
+
+
+@router.message(F.forum_topic_created | F.forum_topic_edited)
+async def handle_forum_topic_events(message: Message) -> None:
+    """Обработчик событий создания/редактирования топиков."""
+    update_titles_from_message(message)
+
+
 @router.message(F.photo)
 async def handle_photo(message: Message) -> None:
     """Обработчик фотографий - подсчитывает изображения в активных чатах."""
@@ -83,6 +147,9 @@ async def handle_photo(message: Message) -> None:
 
     chat_id = message.chat.id
     topic_id = get_topic_id(message)
+    
+    # Обновляем название чата при каждом сообщении
+    update_titles_from_message(message)
     
     # Проверяем, активен ли этот чат (все топики отслеживаются)
     if not _db.is_chat_active(chat_id):
@@ -105,9 +172,8 @@ async def handle_photo(message: Message) -> None:
 
     _db.increment_image_count(chat_id, topic_id, count)
     
-    chat_title = message.chat.title or "Личный чат"
-    formatted = format_chat_topic(chat_id, topic_id)
-    logger.info(f"📷 Фото получено: {chat_title} [{formatted}]")
+    display_name = _db.get_display_name(chat_id, topic_id)
+    logger.info(f"📷 Фото получено: {display_name}")
 
 
 def setup_handlers(dp: Dispatcher, db: Database) -> None:
