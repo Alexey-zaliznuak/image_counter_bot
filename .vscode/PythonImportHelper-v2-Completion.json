@@ -1,0 +1,443 @@
+[
+    {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Bot",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "Dispatcher",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "F",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "Router",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "Bot",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "Dispatcher",
+        "importPath": "aiogram",
+        "description": "aiogram",
+        "isExtraImport": true,
+        "detail": "aiogram",
+        "documentation": {}
+    },
+    {
+        "label": "Command",
+        "importPath": "aiogram.filters",
+        "description": "aiogram.filters",
+        "isExtraImport": true,
+        "detail": "aiogram.filters",
+        "documentation": {}
+    },
+    {
+        "label": "Message",
+        "importPath": "aiogram.types",
+        "description": "aiogram.types",
+        "isExtraImport": true,
+        "detail": "aiogram.types",
+        "documentation": {}
+    },
+    {
+        "label": "BotCommand",
+        "importPath": "aiogram.types",
+        "description": "aiogram.types",
+        "isExtraImport": true,
+        "detail": "aiogram.types",
+        "documentation": {}
+    },
+    {
+        "label": "COUNT_EACH_PHOTO_IN_ALBUM",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "DATABASE_PATH",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "TIMEZONE",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "SYNC_INTERVAL_MINUTES",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "REPORT_SHEET_NAME",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "SERVICE_ACCOUNT_FILE",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "SPREADSHEET_ID",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "SYNC_BATCH_SIZE",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "BOT_TOKEN",
+        "importPath": "config",
+        "description": "config",
+        "isExtraImport": true,
+        "detail": "config",
+        "documentation": {}
+    },
+    {
+        "label": "Database",
+        "importPath": "database",
+        "description": "database",
+        "isExtraImport": true,
+        "detail": "database",
+        "documentation": {}
+    },
+    {
+        "label": "Database",
+        "importPath": "database",
+        "description": "database",
+        "isExtraImport": true,
+        "detail": "database",
+        "documentation": {}
+    },
+    {
+        "label": "Database",
+        "importPath": "database",
+        "description": "database",
+        "isExtraImport": true,
+        "detail": "database",
+        "documentation": {}
+    },
+    {
+        "label": "Database",
+        "importPath": "database",
+        "description": "database",
+        "isExtraImport": true,
+        "detail": "database",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "sqlite3",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sqlite3",
+        "description": "sqlite3",
+        "detail": "sqlite3",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
+        "documentation": {}
+    },
+    {
+        "label": "ZoneInfo",
+        "importPath": "zoneinfo",
+        "description": "zoneinfo",
+        "isExtraImport": true,
+        "detail": "zoneinfo",
+        "documentation": {}
+    },
+    {
+        "label": "asyncio",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "asyncio",
+        "description": "asyncio",
+        "detail": "asyncio",
+        "documentation": {}
+    },
+    {
+        "label": "GoogleSheetsService",
+        "importPath": "services.sheets",
+        "description": "services.sheets",
+        "isExtraImport": true,
+        "detail": "services.sheets",
+        "documentation": {}
+    },
+    {
+        "label": "Credentials",
+        "importPath": "google.oauth2.service_account",
+        "description": "google.oauth2.service_account",
+        "isExtraImport": true,
+        "detail": "google.oauth2.service_account",
+        "documentation": {}
+    },
+    {
+        "label": "build",
+        "importPath": "googleapiclient.discovery",
+        "description": "googleapiclient.discovery",
+        "isExtraImport": true,
+        "detail": "googleapiclient.discovery",
+        "documentation": {}
+    },
+    {
+        "label": "HttpError",
+        "importPath": "googleapiclient.errors",
+        "description": "googleapiclient.errors",
+        "isExtraImport": true,
+        "detail": "googleapiclient.errors",
+        "documentation": {}
+    },
+    {
+        "label": "load_dotenv",
+        "importPath": "dotenv",
+        "description": "dotenv",
+        "isExtraImport": true,
+        "detail": "dotenv",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "DefaultBotProperties",
+        "importPath": "aiogram.client.default",
+        "description": "aiogram.client.default",
+        "isExtraImport": true,
+        "detail": "aiogram.client.default",
+        "documentation": {}
+    },
+    {
+        "label": "ParseMode",
+        "importPath": "aiogram.enums",
+        "description": "aiogram.enums",
+        "isExtraImport": true,
+        "detail": "aiogram.enums",
+        "documentation": {}
+    },
+    {
+        "label": "setup_handlers",
+        "importPath": "bot",
+        "description": "bot",
+        "isExtraImport": true,
+        "detail": "bot",
+        "documentation": {}
+    },
+    {
+        "label": "SyncScheduler",
+        "importPath": "services",
+        "description": "services",
+        "isExtraImport": true,
+        "detail": "services",
+        "documentation": {}
+    },
+    {
+        "label": "get_topic_id",
+        "kind": 2,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "def get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    # message_thread_id содержит ID топика в супергруппах с форумами\n    # Для General топика или обычных групп будет None\n    return message.message_thread_id or 0\ndef format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
+        "label": "format_chat_topic",
+        "kind": 2,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "def format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\n@router.message(Command(\"id\"))\nasync def cmd_id(message: Message) -> None:\n    \"\"\"Обработчик команды /id - показывает ID чата и топика.\"\"\"\n    chat_id = message.chat.id\n    topic_id = get_topic_id(message)\n    response = format_chat_topic(chat_id, topic_id)\n    await message.reply(response)",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
+        "label": "setup_handlers",
+        "kind": 2,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "def setup_handlers(dp: Dispatcher, db: Database) -> None:\n    \"\"\"Настраивает обработчики и передает зависимости.\"\"\"\n    global _db\n    _db = db\n    dp.include_router(router)\n    logger.info(\"Обработчики настроены\")",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "kind": 5,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nrouter = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    # message_thread_id содержит ID топика в супергруппах с форумами",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
+        "label": "router",
+        "kind": 5,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "router = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    # message_thread_id содержит ID топика в супергруппах с форумами\n    # Для General топика или обычных групп будет None",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
+        "label": "Database",
+        "kind": 6,
+        "importPath": "src.database.repository",
+        "description": "src.database.repository",
+        "peekOfCode": "class Database:\n    def __init__(self, db_path: str = DATABASE_PATH):\n        self.db_path = db_path\n        self._ensure_directory()\n        self._init_db()\n    def _ensure_directory(self) -> None:\n        \"\"\"Создает директорию для БД если её нет.\"\"\"\n        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)\n    def _get_connection(self) -> sqlite3.Connection:\n        \"\"\"Получает соединение с БД.\"\"\"",
+        "detail": "src.database.repository",
+        "documentation": {}
+    },
+    {
+        "label": "SyncScheduler",
+        "kind": 6,
+        "importPath": "src.services.scheduler",
+        "description": "src.services.scheduler",
+        "peekOfCode": "class SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._task: asyncio.Task | None = None\n        self._running = False\n    async def _sync_loop(self) -> None:\n        \"\"\"Основной цикл синхронизации.\"\"\"\n        while self._running:\n            try:",
+        "detail": "src.services.scheduler",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "kind": 5,
+        "importPath": "src.services.scheduler",
+        "description": "src.services.scheduler",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nclass SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._task: asyncio.Task | None = None\n        self._running = False\n    async def _sync_loop(self) -> None:\n        \"\"\"Основной цикл синхронизации.\"\"\"\n        while self._running:",
+        "detail": "src.services.scheduler",
+        "documentation": {}
+    },
+    {
+        "label": "GoogleSheetsService",
+        "kind": 6,
+        "importPath": "src.services.sheets",
+        "description": "src.services.sheets",
+        "peekOfCode": "class GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None\n    def _get_service(self) -> Any:\n        \"\"\"Создает и возвращает сервис Google Sheets API.\"\"\"\n        if self._service is None:\n            credentials = Credentials.from_service_account_file(",
+        "detail": "src.services.sheets",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "kind": 5,
+        "importPath": "src.services.sheets",
+        "description": "src.services.sheets",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nSCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\nclass GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None\n    def _get_service(self) -> Any:\n        \"\"\"Создает и возвращает сервис Google Sheets API.\"\"\"",
+        "detail": "src.services.sheets",
+        "documentation": {}
+    },
+    {
+        "label": "SCOPES",
+        "kind": 5,
+        "importPath": "src.services.sheets",
+        "description": "src.services.sheets",
+        "peekOfCode": "SCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\nclass GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None\n    def _get_service(self) -> Any:\n        \"\"\"Создает и возвращает сервис Google Sheets API.\"\"\"\n        if self._service is None:",
+        "detail": "src.services.sheets",
+        "documentation": {}
+    },
+    {
+        "label": "logger",
+        "kind": 5,
+        "importPath": "src.main",
+        "description": "src.main",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nasync def set_bot_commands(bot: Bot) -> None:\n    \"\"\"Устанавливает команды бота для меню.\"\"\"\n    commands = [\n        BotCommand(command=\"id\", description=\"Показать ID чата и топика\"),\n        BotCommand(command=\"set_chat_active\", description=\"Активировать отслеживание чата\"),\n        BotCommand(command=\"set_chat_inactive\", description=\"Деактивировать отслеживание чата\"),\n    ]\n    await bot.set_my_commands(commands)\n    logger.info(\"Команды бота установлены\")",
+        "detail": "src.main",
+        "documentation": {}
+    }
+]
