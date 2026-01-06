@@ -28,13 +28,11 @@ class Database:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             
-            # Таблица активных чатов
+            # Таблица активных чатов (активируется весь чат, не отдельные топики)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS active_chats (
-                    chat_id INTEGER NOT NULL,
-                    topic_id INTEGER NOT NULL DEFAULT 0,
-                    created_at TEXT NOT NULL,
-                    PRIMARY KEY (chat_id, topic_id)
+                    chat_id INTEGER PRIMARY KEY,
+                    created_at TEXT NOT NULL
                 )
             """)
             
@@ -56,9 +54,9 @@ class Database:
         tz = ZoneInfo(TIMEZONE)
         return datetime.now(tz).strftime("%Y-%m-%d")
 
-    def add_active_chat(self, chat_id: int, topic_id: int = 0) -> bool:
+    def add_active_chat(self, chat_id: int) -> bool:
         """
-        Добавляет чат в список активных.
+        Добавляет чат в список активных (все топики чата будут отслеживаться).
         Возвращает True если добавлен, False если уже существует.
         """
         with self._get_connection() as conn:
@@ -66,17 +64,17 @@ class Database:
             try:
                 cursor.execute(
                     """
-                    INSERT INTO active_chats (chat_id, topic_id, created_at)
-                    VALUES (?, ?, ?)
+                    INSERT INTO active_chats (chat_id, created_at)
+                    VALUES (?, ?)
                     """,
-                    (chat_id, topic_id, self._get_current_date())
+                    (chat_id, self._get_current_date())
                 )
                 conn.commit()
                 return True
             except sqlite3.IntegrityError:
                 return False
 
-    def remove_active_chat(self, chat_id: int, topic_id: int = 0) -> bool:
+    def remove_active_chat(self, chat_id: int) -> bool:
         """
         Удаляет чат из списка активных.
         Возвращает True если удален, False если не существовал.
@@ -84,34 +82,28 @@ class Database:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
-                DELETE FROM active_chats
-                WHERE chat_id = ? AND topic_id = ?
-                """,
-                (chat_id, topic_id)
+                "DELETE FROM active_chats WHERE chat_id = ?",
+                (chat_id,)
             )
             conn.commit()
             return cursor.rowcount > 0
 
-    def is_chat_active(self, chat_id: int, topic_id: int = 0) -> bool:
-        """Проверяет, активен ли чат."""
+    def is_chat_active(self, chat_id: int) -> bool:
+        """Проверяет, активен ли чат (все топики чата отслеживаются)."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """
-                SELECT 1 FROM active_chats
-                WHERE chat_id = ? AND topic_id = ?
-                """,
-                (chat_id, topic_id)
+                "SELECT 1 FROM active_chats WHERE chat_id = ?",
+                (chat_id,)
             )
             return cursor.fetchone() is not None
 
-    def get_all_active_chats(self) -> list[tuple[int, int]]:
-        """Возвращает список всех активных чатов (chat_id, topic_id)."""
+    def get_all_active_chats(self) -> list[int]:
+        """Возвращает список всех активных чатов (chat_id)."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT chat_id, topic_id FROM active_chats")
-            return [(row["chat_id"], row["topic_id"]) for row in cursor.fetchall()]
+            cursor.execute("SELECT chat_id FROM active_chats")
+            return [row["chat_id"] for row in cursor.fetchall()]
 
     def increment_image_count(self, chat_id: int, topic_id: int = 0, count: int = 1) -> None:
         """Увеличивает счетчик изображений для чата/топика на текущую дату."""

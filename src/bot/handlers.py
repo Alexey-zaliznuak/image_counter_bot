@@ -45,21 +45,18 @@ async def cmd_id(message: Message) -> None:
 
 @router.message(Command("set_chat_active"))
 async def cmd_set_chat_active(message: Message) -> None:
-    """Обработчик команды /set_chat_active - активирует чат для статистики."""
+    """Обработчик команды /set_chat_active - активирует чат для статистики (все топики)."""
     if _db is None:
         await message.reply("❌ Ошибка: база данных не инициализирована")
         return
 
     chat_id = message.chat.id
-    topic_id = get_topic_id(message)
     
-    if _db.add_active_chat(chat_id, topic_id):
-        formatted = format_chat_topic(chat_id, topic_id)
-        await message.reply(f"✅ Чат {formatted} добавлен в отслеживаемые")
-        logger.info(f"Чат активирован: chat_id={chat_id}, topic_id={topic_id}")
+    if _db.add_active_chat(chat_id):
+        await message.reply(f"✅ Чат {chat_id} добавлен в отслеживаемые (все топики)")
+        logger.info(f"Чат активирован: chat_id={chat_id}")
     else:
-        formatted = format_chat_topic(chat_id, topic_id)
-        await message.reply(f"ℹ️ Чат {formatted} уже отслеживается")
+        await message.reply(f"ℹ️ Чат {chat_id} уже отслеживается")
 
 
 @router.message(Command("set_chat_inactive"))
@@ -70,15 +67,12 @@ async def cmd_set_chat_inactive(message: Message) -> None:
         return
 
     chat_id = message.chat.id
-    topic_id = get_topic_id(message)
     
-    if _db.remove_active_chat(chat_id, topic_id):
-        formatted = format_chat_topic(chat_id, topic_id)
-        await message.reply(f"✅ Чат {formatted} удален из отслеживаемых")
-        logger.info(f"Чат деактивирован: chat_id={chat_id}, topic_id={topic_id}")
+    if _db.remove_active_chat(chat_id):
+        await message.reply(f"✅ Чат {chat_id} удален из отслеживаемых")
+        logger.info(f"Чат деактивирован: chat_id={chat_id}")
     else:
-        formatted = format_chat_topic(chat_id, topic_id)
-        await message.reply(f"ℹ️ Чат {formatted} не был в списке отслеживаемых")
+        await message.reply(f"ℹ️ Чат {chat_id} не был в списке отслеживаемых")
 
 
 @router.message(F.photo)
@@ -90,8 +84,8 @@ async def handle_photo(message: Message) -> None:
     chat_id = message.chat.id
     topic_id = get_topic_id(message)
     
-    # Проверяем, активен ли этот чат/топик
-    if not _db.is_chat_active(chat_id, topic_id):
+    # Проверяем, активен ли этот чат (все топики отслеживаются)
+    if not _db.is_chat_active(chat_id):
         return
 
     # Определяем сколько фото считать
