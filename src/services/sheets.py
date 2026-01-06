@@ -102,6 +102,51 @@ class GoogleSheetsService:
             logger.error(f"Ошибка записи пакета в {range_name}: {e}")
             raise
 
+    def _get_sheet_id(self) -> int | None:
+        """Получает ID листа по его названию."""
+        service = self._get_service()
+        try:
+            spreadsheet = service.spreadsheets().get(
+                spreadsheetId=self.spreadsheet_id
+            ).execute()
+            
+            for sheet in spreadsheet["sheets"]:
+                if sheet["properties"]["title"] == self.sheet_name:
+                    return sheet["properties"]["sheetId"]
+            return None
+        except HttpError as e:
+            logger.error(f"Ошибка получения ID листа: {e}")
+            return None
+
+    def _auto_resize_columns(self, num_columns: int) -> None:
+        """Автоматически подгоняет ширину столбцов под содержимое."""
+        sheet_id = self._get_sheet_id()
+        if sheet_id is None:
+            logger.error("Не удалось получить ID листа для изменения ширины столбцов")
+            return
+        
+        service = self._get_service()
+        try:
+            request = {
+                "requests": [{
+                    "autoResizeDimensions": {
+                        "dimensions": {
+                            "sheetId": sheet_id,
+                            "dimension": "COLUMNS",
+                            "startIndex": 0,
+                            "endIndex": num_columns
+                        }
+                    }
+                }]
+            }
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=self.spreadsheet_id,
+                body=request
+            ).execute()
+            logger.info(f"Ширина {num_columns} столбцов автоматически подогнана")
+        except HttpError as e:
+            logger.error(f"Ошибка автоподгонки ширины столбцов: {e}")
+
     def sync_to_sheets(self) -> None:
         """
         Синхронизирует данные из БД в Google Таблицу.
@@ -150,6 +195,9 @@ class GoogleSheetsService:
             range_name = f"'{self.sheet_name}'!A{start_row}"
             self._write_batch(range_name, batch)
             logger.info(f"Записано строк: {min(i + SYNC_BATCH_SIZE, total_rows)}/{total_rows}")
+
+        # Автоматически подгоняем ширину столбцов
+        self._auto_resize_columns(len(headers))
 
         logger.info(f"Синхронизация завершена. Записано {total_rows} строк данных")
 
