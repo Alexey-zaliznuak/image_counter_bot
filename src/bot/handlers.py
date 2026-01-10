@@ -51,8 +51,8 @@ async def cmd_id(message: Message) -> None:
     response = (
         "Основные команды:\n"
         "/help - помощь\n"
-        "/set_chat_active - Включить ведение статистики для этого чата\n"
-        "/set_chat_inactive - Отключить ведение статистики для этого чата\n"
+        "/set_chat_active - Включить статистику для этого чата\n"
+        "/set_chat_inactive - Отключить статистику для этого чата\n"
     )
     await message.reply(response)
 
