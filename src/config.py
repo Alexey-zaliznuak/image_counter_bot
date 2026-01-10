@@ -16,8 +16,8 @@ SERVICE_ACCOUNT_FILE: str = "service_account.json"
 REPORT_SHEET_NAME: str = "Отчет по фотографиям"
 
 # Sync settings
-SYNC_INTERVAL_MINUTES: int = 1
-SYNC_BATCH_SIZE: int = 10  # Количество строк за один запрос
+SYNC_INTERVAL_MINUTES: int = 2
+SYNC_BATCH_SIZE: int = 20  # Количество строк за один запрос
 
 # Timezone
 TIMEZONE: str = "Europe/Moscow"
