@@ -1,3 +1,5 @@
+cp ./image_counter_bot.service /etc/systemd/system/image_counter_bot.service
+
 # Перечитать конфигурацию systemd
 sudo systemctl daemon-reload
 
