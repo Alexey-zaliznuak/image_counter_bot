@@ -1,0 +1,8 @@
+# Перечитать конфигурацию systemd
+sudo systemctl daemon-reload
+
+# Запустить сервис
+sudo systemctl start image_counter_bot.service
+
+# Включить автозапуск при загрузке
+sudo systemctl enable image_counter_bot.service
