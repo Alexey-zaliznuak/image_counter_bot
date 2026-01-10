@@ -43,6 +43,21 @@ async def cmd_id(message: Message) -> None:
     logger.info(f"Команда /id: chat_id={chat_id}, topic_id={topic_id}")
 
 
+@router.message(Command("help"))
+async def cmd_id(message: Message) -> None:
+    chat_id = message.chat.id
+    topic_id = get_topic_id(message)
+
+    response = (
+        "Основные команды:\n"
+        "/help - помощь\n"
+        "/set_chat_active - Включить ведение статистики для этого чата\n"
+        "/set_chat_inactive - Отключить ведение статистики для этого чата\n"
+    )
+    await message.reply(response)
+
+    logger.info(f"Команда /help: chat_id={chat_id}, topic_id={topic_id}")
+
 @router.message(Command("set_chat_active"))
 async def cmd_set_chat_active(message: Message) -> None:
     """Обработчик команды /set_chat_active - активирует чат для статистики (все топики)."""

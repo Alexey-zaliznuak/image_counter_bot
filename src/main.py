@@ -51,7 +51,7 @@ async def set_bot_commands(bot: Bot) -> None:
         BotCommand(command="id", description="Показать ID чата и топика"),
         BotCommand(command="set_chat_active", description="Активировать отслеживание чата"),
         BotCommand(command="set_chat_inactive", description="Деактивировать отслеживание чата"),
-        BotCommand(command="set_topic_name", description="Задать название топика"),
+        BotCommand(command="help", description="Помощь"),
     ]
     await bot.set_my_commands(commands)
     logger.info("Команды бота установлены")
