@@ -1,3 +1,4 @@
+git pull && sudo systemctl restart image_counter_bot.service
 cp ./image_counter_bot.service /etc/systemd/system/image_counter_bot.service
 
 # Перечитать конфигурацию systemd
