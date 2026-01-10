@@ -1,0 +1,16 @@
+[Unit]
+Description=Бот для подсчета пикч
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/image_counter_bot
+ExecStart=/root/image_counter_bot/venv/bin/python3 /root/image_counter_bot/src/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
