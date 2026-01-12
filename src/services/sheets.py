@@ -1,4 +1,5 @@
-import logging
+﻿import logging
+from datetime import datetime
 from typing import Any
 
 from google.oauth2.service_account import Credentials
@@ -34,24 +35,25 @@ class GoogleSheetsService:
             self._service = build("sheets", "v4", credentials=credentials)
         return self._service
 
-    def _get_column_name(self, chat_id: int, topic_id: int) -> str:
-        """Возвращает название столбца: 'Название чата | Название топика'."""
-        return self.db.get_display_name(chat_id, topic_id)
+    def _format_date(self, date_str: str) -> str:
+        """Конвертирует дату из YYYY-MM-DD в DD.MM.YYYY."""
+        try:
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+            return date_obj.strftime("%d.%m.%Y")
+        except ValueError:
+            return date_str
 
     def _ensure_sheet_exists(self) -> None:
         """Создает лист, если он не существует."""
         service = self._get_service()
         try:
-            # Получаем информацию о таблице
             spreadsheet = service.spreadsheets().get(
                 spreadsheetId=self.spreadsheet_id
             ).execute()
             
-            # Проверяем, существует ли лист
             sheet_names = [sheet["properties"]["title"] for sheet in spreadsheet["sheets"]]
             
             if self.sheet_name not in sheet_names:
-                # Создаем новый лист
                 request = {
                     "requests": [{
                         "addSheet": {
@@ -150,32 +152,46 @@ class GoogleSheetsService:
     def sync_to_sheets(self) -> None:
         """
         Синхронизирует данные из БД в Google Таблицу.
-        Данные записываются пакетами по SYNC_BATCH_SIZE строк.
+        Новая структура: Дата | Город | Топик1 | Топик2 | ...
+        Для каждой даты несколько строк (по городам).
         """
         logger.info("Начало синхронизации с Google Sheets")
 
         # Получаем данные из БД
-        chat_topics = self.db.get_unique_chat_topics()
         dates = self.db.get_unique_dates()
-
-        if not chat_topics or not dates:
+        
+        if not dates:
             logger.info("Нет данных для синхронизации")
             return
 
-        # Формируем заголовки: Дата, Название чата | Название топика, ...
-        headers = ["Дата"] + [
-            self._get_column_name(chat_id, topic_id)
-            for chat_id, topic_id in chat_topics
-        ]
+        # Получаем все уникальные названия топиков из всех чатов
+        all_topic_names = self.db.get_all_topic_names_from_counts()
+        
+        if not all_topic_names:
+            logger.info("Нет топиков для синхронизации")
+            return
+
+        # Формируем заголовки: Дата, Город, Топик1, Топик2, ...
+        headers = ["Дата", "Город"] + all_topic_names
 
         # Формируем строки данных
         rows: list[list[Any]] = []
         for date in dates:
-            row = [date]
-            for chat_id, topic_id in chat_topics:
-                count = self.db.get_image_count(chat_id, topic_id, date)
-                row.append(count if count > 0 else "")
-            rows.append(row)
+            # Получаем города с данными за эту дату
+            cities = self.db.get_cities_with_data_for_date(date)
+            
+            formatted_date = self._format_date(date)
+            
+            for city in cities:
+                row = [formatted_date, city]
+                for topic_name in all_topic_names:
+                    count = self.db.get_image_count_by_city_topic_date(city, topic_name, date)
+                    row.append(count if count > 0 else "")
+                rows.append(row)
+
+        if not rows:
+            logger.info("Нет данных для записи")
+            return
 
         # Проверяем/создаем лист и очищаем его
         self._ensure_sheet_exists()
@@ -200,4 +216,3 @@ class GoogleSheetsService:
         self._auto_resize_columns(len(headers))
 
         logger.info(f"Синхронизация завершена. Записано {total_rows} строк данных")
-

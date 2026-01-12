@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import logging
 import os
 import sys
@@ -51,6 +51,7 @@ async def set_bot_commands(bot: Bot) -> None:
         BotCommand(command="id", description="Показать ID чата и топика"),
         BotCommand(command="set_chat_active", description="Активировать отслеживание чата"),
         BotCommand(command="set_chat_inactive", description="Деактивировать отслеживание чата"),
+        BotCommand(command="set_city", description="Установить город для чата"),
         BotCommand(command="help", description="Помощь"),
     ]
     await bot.set_my_commands(commands)
@@ -98,4 +99,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-

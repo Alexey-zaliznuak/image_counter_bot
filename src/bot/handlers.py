@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 from typing import Optional
 
 from aiogram import Bot, Dispatcher, F, Router
@@ -21,8 +21,6 @@ def get_topic_id(message: Message) -> int:
     Извлекает ID топика из сообщения.
     Возвращает 0 для обычных групп или General топика.
     """
-    # message_thread_id содержит ID топика в супергруппах с форумами
-    # Для General топика или обычных групп будет None
     return message.message_thread_id or 0
 
 
@@ -44,7 +42,7 @@ async def cmd_id(message: Message) -> None:
 
 
 @router.message(Command("help"))
-async def cmd_id(message: Message) -> None:
+async def cmd_help(message: Message) -> None:
     chat_id = message.chat.id
     topic_id = get_topic_id(message)
 
@@ -53,10 +51,12 @@ async def cmd_id(message: Message) -> None:
         "/help - помощь\n"
         "/set_chat_active - Включить статистику для этого чата\n"
         "/set_chat_inactive - Отключить статистику для этого чата\n"
+        "/set_city <город> - Установить город для этого чата\n"
     )
     await message.reply(response)
 
     logger.info(f"Команда /help: chat_id={chat_id}, topic_id={topic_id}")
+
 
 @router.message(Command("set_chat_active"))
 async def cmd_set_chat_active(message: Message) -> None:
@@ -88,6 +88,35 @@ async def cmd_set_chat_inactive(message: Message) -> None:
         logger.info(f"Чат деактивирован: chat_id={chat_id}")
     else:
         await message.reply(f"ℹ️ Чат {chat_id} не был в списке отслеживаемых")
+
+
+@router.message(Command("set_city"))
+async def cmd_set_city(message: Message) -> None:
+    """
+    Обработчик команды /set_city - устанавливает город для чата.
+    Использование: /set_city Название города
+    """
+    if _db is None:
+        await message.reply("❌ Ошибка: база данных не инициализирована")
+        return
+
+    chat_id = message.chat.id
+    
+    # Извлекаем название города из текста команды
+    if message.text:
+        parts = message.text.split(maxsplit=1)
+        if len(parts) > 1:
+            city = parts[1].strip()
+            if _db.set_chat_city(chat_id, city):
+                await message.reply(f"✅ Город для чата установлен: {city}")
+                logger.info(f"Город установлен: {city} (chat_id={chat_id})")
+            else:
+                await message.reply(f"❌ Чат {chat_id} не активирован. Сначала используйте /set_chat_active")
+            return
+    
+    # Показываем текущий город
+    current_city = _db.get_chat_city(chat_id)
+    await message.reply(f"Текущий город: {current_city}\n\nИспользование: /set_city Название города")
 
 
 @router.message(Command("set_topic_name"))
@@ -172,15 +201,9 @@ async def handle_photo(message: Message) -> None:
 
     # Определяем сколько фото считать
     if COUNT_EACH_PHOTO_IN_ALBUM:
-        # Если это часть альбома, считаем как 1 фото
-        # (каждое фото в альбоме приходит отдельным сообщением)
         count = 1
     else:
-        # Если альбом считается как одно сообщение
-        # и это часть media_group, то уже подсчитывали
         if message.media_group_id:
-            # Для упрощения в режиме "альбом = 1" считаем только первое фото
-            # Можно улучшить с помощью кэширования media_group_id
             count = 1
         else:
             count = 1
@@ -197,4 +220,3 @@ def setup_handlers(dp: Dispatcher, db: Database) -> None:
     _db = db
     dp.include_router(router)
     logger.info("Обработчики настроены")
-

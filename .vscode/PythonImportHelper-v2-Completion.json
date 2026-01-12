@@ -1,14 +1,5 @@
 [
     {
-        "label": "logging",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "logging",
-        "description": "logging",
-        "detail": "logging",
-        "documentation": {}
-    },
-    {
         "label": "Optional",
         "importPath": "typing",
         "description": "typing",
@@ -217,21 +208,20 @@
         "documentation": {}
     },
     {
-        "label": "os",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "os",
-        "description": "os",
-        "detail": "os",
-        "documentation": {}
-    },
-    {
         "label": "sqlite3",
         "kind": 6,
         "isExtraImport": true,
         "importPath": "sqlite3",
         "description": "sqlite3",
         "detail": "sqlite3",
+        "documentation": {}
+    },
+    {
+        "label": "datetime",
+        "importPath": "datetime",
+        "description": "datetime",
+        "isExtraImport": true,
+        "detail": "datetime",
         "documentation": {}
     },
     {
@@ -276,6 +266,15 @@
         "documentation": {}
     },
     {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
         "label": "GoogleSheetsService",
         "importPath": "services.sheets",
         "description": "services.sheets",
@@ -305,6 +304,15 @@
         "description": "googleapiclient.errors",
         "isExtraImport": true,
         "detail": "googleapiclient.errors",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
         "documentation": {}
     },
     {
@@ -361,7 +369,7 @@
         "kind": 2,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "def get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    # message_thread_id содержит ID топика в супергруппах с форумами\n    # Для General топика или обычных групп будет None\n    return message.message_thread_id or 0\ndef format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"",
+        "peekOfCode": "def get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    return message.message_thread_id or 0\ndef format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\n@router.message(Command(\"id\"))",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -397,7 +405,7 @@
         "kind": 5,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nrouter = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    # message_thread_id содержит ID топика в супергруппах с форумами",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nrouter = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    return message.message_thread_id or 0",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -406,7 +414,7 @@
         "kind": 5,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "router = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    # message_thread_id содержит ID топика в супергруппах с форумами\n    # Для General топика или обычных групп будет None",
+        "peekOfCode": "router = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    return message.message_thread_id or 0\ndef format_chat_topic(chat_id: int, topic_id: int) -> str:",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -415,7 +423,7 @@
         "kind": 6,
         "importPath": "src.database.repository",
         "description": "src.database.repository",
-        "peekOfCode": "class Database:\n    def __init__(self, db_path: str = DATABASE_PATH):\n        self.db_path = db_path\n        self._ensure_directory()\n        self._init_db()\n    def _ensure_directory(self) -> None:\n        \"\"\"Создает директорию для БД если её нет.\"\"\"\n        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)\n    def _get_connection(self) -> sqlite3.Connection:\n        \"\"\"Получает соединение с БД.\"\"\"",
+        "peekOfCode": "class Database:\n    def __init__(self, db_path: str = DATABASE_PATH):\n        self.db_path = db_path\n        self._ensure_directory()\n        self._init_db()\n    def _ensure_directory(self) -> None:\n        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)\n    def _get_connection(self) -> sqlite3.Connection:\n        conn = sqlite3.connect(self.db_path)\n        conn.row_factory = sqlite3.Row",
         "detail": "src.database.repository",
         "documentation": {}
     },
@@ -478,7 +486,7 @@
         "kind": 5,
         "importPath": "src.main",
         "description": "src.main",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nasync def set_bot_commands(bot: Bot) -> None:\n    \"\"\"Устанавливает команды бота для меню.\"\"\"\n    commands = [\n        BotCommand(command=\"id\", description=\"Показать ID чата и топика\"),\n        BotCommand(command=\"set_chat_active\", description=\"Активировать отслеживание чата\"),\n        BotCommand(command=\"set_chat_inactive\", description=\"Деактивировать отслеживание чата\"),\n        BotCommand(command=\"set_topic_name\", description=\"Задать название топика\"),\n    ]\n    await bot.set_my_commands(commands)",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nasync def set_bot_commands(bot: Bot) -> None:\n    \"\"\"Устанавливает команды бота для меню.\"\"\"\n    commands = [\n        BotCommand(command=\"id\", description=\"Показать ID чата и топика\"),\n        BotCommand(command=\"set_chat_active\", description=\"Активировать отслеживание чата\"),\n        BotCommand(command=\"set_chat_inactive\", description=\"Деактивировать отслеживание чата\"),\n        BotCommand(command=\"set_city\", description=\"Установить город для чата\"),\n        BotCommand(command=\"help\", description=\"Помощь\"),\n    ]",
         "detail": "src.main",
         "documentation": {}
     }
