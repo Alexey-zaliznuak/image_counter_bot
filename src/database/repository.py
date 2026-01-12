@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sqlite3
 from datetime import datetime
 from typing import Optional
@@ -60,9 +60,16 @@ class Database:
                     chat_id INTEGER NOT NULL,
                     topic_id INTEGER NOT NULL,
                     title TEXT NOT NULL,
+                    type TEXT NOT NULL DEFAULT 'Не указан',
                     PRIMARY KEY (chat_id, topic_id)
                 )
             """)
+            
+            # Миграция: добавляем столбец type в topic_titles если его нет
+            cursor.execute("PRAGMA table_info(topic_titles)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'type' not in columns:
+                cursor.execute("ALTER TABLE topic_titles ADD COLUMN type TEXT NOT NULL DEFAULT 'Не указан'")
             
             conn.commit()
 
@@ -164,18 +171,6 @@ class Database:
             cursor.execute("SELECT DISTINCT city FROM active_chats ORDER BY city")
             return [row["city"] for row in cursor.fetchall()]
 
-    def get_all_topic_names_from_counts(self) -> list[str]:
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT ic.chat_id, ic.topic_id FROM image_counts ic")
-            topic_names = set()
-            for row in cursor.fetchall():
-                chat_id = row["chat_id"]
-                topic_id = row["topic_id"]
-                topic_name = self.get_topic_title(chat_id, topic_id)
-                topic_names.add(topic_name)
-            return sorted(list(topic_names))
-
     def get_image_count(self, chat_id: int, topic_id: int, date: str) -> int:
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -186,10 +181,20 @@ class Database:
             row = cursor.fetchone()
             return row["count"] if row else 0
 
-    def get_image_count_by_city_topic_date(self, city: str, topic_name: str, date: str) -> int:
+    def get_image_count_by_city_type_date(self, city: str, topic_type: str, date: str) -> int:
+        """
+        Возвращает сумму изображений для города/типа топика/даты.
+        Суммирует по всем чатам с указанным городом и топикам с указанным типом.
+        Топики с type='Не указан' игнорируются.
+        """
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT chat_id FROM active_chats WHERE city = ?", (city,))
+            
+            # Получаем все чаты с указанным городом
+            cursor.execute(
+                "SELECT chat_id FROM active_chats WHERE city = ?",
+                (city,)
+            )
             chat_ids = [row["chat_id"] for row in cursor.fetchall()]
             
             if not chat_ids:
@@ -197,36 +202,37 @@ class Database:
             
             total = 0
             for chat_id in chat_ids:
-                if topic_name == "General":
-                    topic_id = 0
-                else:
-                    cursor.execute(
-                        "SELECT topic_id FROM topic_titles WHERE chat_id = ? AND title = ?",
-                        (chat_id, topic_name)
-                    )
-                    row = cursor.fetchone()
-                    if row:
-                        topic_id = row["topic_id"]
-                    else:
-                        continue
-                
+                # Находим все topic_id с указанным типом в этом чате
                 cursor.execute(
-                    "SELECT count FROM image_counts WHERE chat_id = ? AND topic_id = ? AND date = ?",
-                    (chat_id, topic_id, date)
+                    "SELECT topic_id FROM topic_titles WHERE chat_id = ? AND type = ?",
+                    (chat_id, topic_type)
                 )
-                count_row = cursor.fetchone()
-                if count_row:
-                    total += count_row["count"]
+                topic_ids = [row["topic_id"] for row in cursor.fetchall()]
+                
+                for topic_id in topic_ids:
+                    cursor.execute(
+                        "SELECT count FROM image_counts WHERE chat_id = ? AND topic_id = ? AND date = ?",
+                        (chat_id, topic_id, date)
+                    )
+                    count_row = cursor.fetchone()
+                    if count_row:
+                        total += count_row["count"]
             
             return total
 
     def get_cities_with_data_for_date(self, date: str) -> list[str]:
+        """
+        Возвращает список городов, у которых есть данные за указанную дату.
+        Учитывает только топики с установленным типом (не 'Не указан').
+        """
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """SELECT DISTINCT ac.city FROM active_chats ac
                 INNER JOIN image_counts ic ON ac.chat_id = ic.chat_id
-                WHERE ic.date = ? ORDER BY ac.city""",
+                INNER JOIN topic_titles tt ON ic.chat_id = tt.chat_id AND ic.topic_id = tt.topic_id
+                WHERE ic.date = ? AND tt.type != 'Не указан'
+                ORDER BY ac.city""",
                 (date,)
             )
             return [row["city"] for row in cursor.fetchall()]
@@ -245,11 +251,35 @@ class Database:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """INSERT INTO topic_titles (chat_id, topic_id, title) VALUES (?, ?, ?)
+                """INSERT INTO topic_titles (chat_id, topic_id, title, type) VALUES (?, ?, ?, 'Не указан')
                 ON CONFLICT(chat_id, topic_id) DO UPDATE SET title = ?""",
                 (chat_id, topic_id, title, title)
             )
             conn.commit()
+
+    def set_topic_type(self, chat_id: int, topic_id: int, topic_type: str) -> bool:
+        """Устанавливает тип для топика. Возвращает True если успешно."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            # Сначала убедимся что запись существует
+            cursor.execute(
+                """INSERT INTO topic_titles (chat_id, topic_id, title, type) VALUES (?, ?, ?, ?)
+                ON CONFLICT(chat_id, topic_id) DO UPDATE SET type = ?""",
+                (chat_id, topic_id, f"Топик {topic_id}", topic_type, topic_type)
+            )
+            conn.commit()
+            return True
+
+    def get_topic_type(self, chat_id: int, topic_id: int) -> str:
+        """Возвращает тип топика или 'Не указан' если не найден."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT type FROM topic_titles WHERE chat_id = ? AND topic_id = ?",
+                (chat_id, topic_id)
+            )
+            row = cursor.fetchone()
+            return row["type"] if row else "Не указан"
 
     def get_chat_title(self, chat_id: int) -> str:
         with self._get_connection() as conn:

@@ -1,5 +1,14 @@
 [
     {
+        "label": "logging",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "logging",
+        "description": "logging",
+        "detail": "logging",
+        "documentation": {}
+    },
+    {
         "label": "Optional",
         "importPath": "typing",
         "description": "typing",
@@ -77,6 +86,30 @@
         "description": "aiogram.filters",
         "isExtraImport": true,
         "detail": "aiogram.filters",
+        "documentation": {}
+    },
+    {
+        "label": "CallbackQuery",
+        "importPath": "aiogram.types",
+        "description": "aiogram.types",
+        "isExtraImport": true,
+        "detail": "aiogram.types",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardButton",
+        "importPath": "aiogram.types",
+        "description": "aiogram.types",
+        "isExtraImport": true,
+        "detail": "aiogram.types",
+        "documentation": {}
+    },
+    {
+        "label": "InlineKeyboardMarkup",
+        "importPath": "aiogram.types",
+        "description": "aiogram.types",
+        "isExtraImport": true,
+        "detail": "aiogram.types",
         "documentation": {}
     },
     {
@@ -208,6 +241,15 @@
         "documentation": {}
     },
     {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
         "label": "sqlite3",
         "kind": 6,
         "isExtraImport": true,
@@ -266,15 +308,6 @@
         "documentation": {}
     },
     {
-        "label": "logging",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "logging",
-        "description": "logging",
-        "detail": "logging",
-        "documentation": {}
-    },
-    {
         "label": "GoogleSheetsService",
         "importPath": "services.sheets",
         "description": "services.sheets",
@@ -304,15 +337,6 @@
         "description": "googleapiclient.errors",
         "isExtraImport": true,
         "detail": "googleapiclient.errors",
-        "documentation": {}
-    },
-    {
-        "label": "os",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "os",
-        "description": "os",
-        "detail": "os",
         "documentation": {}
     },
     {
@@ -369,7 +393,7 @@
         "kind": 2,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "def get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    return message.message_thread_id or 0\ndef format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\n@router.message(Command(\"id\"))",
+        "peekOfCode": "def get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    return message.message_thread_id or 0\ndef format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\ndef get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -378,7 +402,16 @@
         "kind": 2,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "def format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\n@router.message(Command(\"id\"))\nasync def cmd_id(message: Message) -> None:\n    \"\"\"Обработчик команды /id - показывает ID чата и топика.\"\"\"\n    chat_id = message.chat.id\n    topic_id = get_topic_id(message)\n    response = format_chat_topic(chat_id, topic_id)\n    await message.reply(response)",
+        "peekOfCode": "def format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\ndef get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:\n    \"\"\"Создает клавиатуру с типами топиков.\"\"\"\n    buttons = []\n    for topic_type in TOPIC_TYPES:\n        callback_data = f\"set_type:{chat_id}:{topic_id}:{topic_type}\"\n        buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])\n    return InlineKeyboardMarkup(inline_keyboard=buttons)",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
+        "label": "get_type_keyboard",
+        "kind": 2,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "def get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:\n    \"\"\"Создает клавиатуру с типами топиков.\"\"\"\n    buttons = []\n    for topic_type in TOPIC_TYPES:\n        callback_data = f\"set_type:{chat_id}:{topic_id}:{topic_type}\"\n        buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])\n    return InlineKeyboardMarkup(inline_keyboard=buttons)\n@router.message(Command(\"id\"))\nasync def cmd_id(message: Message) -> None:\n    \"\"\"Обработчик команды /id - показывает ID чата и топика.\"\"\"",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -405,7 +438,7 @@
         "kind": 5,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nrouter = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    return message.message_thread_id or 0",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nrouter = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\n# Фиксированные типы топиков\nTOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -414,7 +447,16 @@
         "kind": 5,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "router = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\ndef get_topic_id(message: Message) -> int:\n    \"\"\"\n    Извлекает ID топика из сообщения.\n    Возвращает 0 для обычных групп или General топика.\n    \"\"\"\n    return message.message_thread_id or 0\ndef format_chat_topic(chat_id: int, topic_id: int) -> str:",
+        "peekOfCode": "router = Router()\n# Глобальная ссылка на БД (устанавливается при setup)\n_db: Optional[Database] = None\n# Фиксированные типы топиков\nTOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",",
+        "detail": "src.bot.handlers",
+        "documentation": {}
+    },
+    {
+        "label": "TOPIC_TYPES",
+        "kind": 5,
+        "importPath": "src.bot.handlers",
+        "description": "src.bot.handlers",
+        "peekOfCode": "TOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",\n    \"Обсуждение\",\n    \"Брендированная упаковка\",\n]\ndef get_topic_id(message: Message) -> int:",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -459,7 +501,7 @@
         "kind": 5,
         "importPath": "src.services.sheets",
         "description": "src.services.sheets",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nSCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\nclass GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None\n    def _get_service(self) -> Any:\n        \"\"\"Создает и возвращает сервис Google Sheets API.\"\"\"",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nSCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\n# Фиксированные типы топиков для столбцов таблицы\nTOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",\n    \"Обсуждение\",",
         "detail": "src.services.sheets",
         "documentation": {}
     },
@@ -468,7 +510,16 @@
         "kind": 5,
         "importPath": "src.services.sheets",
         "description": "src.services.sheets",
-        "peekOfCode": "SCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\nclass GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None\n    def _get_service(self) -> Any:\n        \"\"\"Создает и возвращает сервис Google Sheets API.\"\"\"\n        if self._service is None:",
+        "peekOfCode": "SCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\n# Фиксированные типы топиков для столбцов таблицы\nTOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",\n    \"Обсуждение\",\n    \"Брендированная упаковка\",",
+        "detail": "src.services.sheets",
+        "documentation": {}
+    },
+    {
+        "label": "TOPIC_TYPES",
+        "kind": 5,
+        "importPath": "src.services.sheets",
+        "description": "src.services.sheets",
+        "peekOfCode": "TOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",\n    \"Обсуждение\",\n    \"Брендированная упаковка\",\n]\nclass GoogleSheetsService:",
         "detail": "src.services.sheets",
         "documentation": {}
     },
@@ -486,7 +537,7 @@
         "kind": 5,
         "importPath": "src.main",
         "description": "src.main",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nasync def set_bot_commands(bot: Bot) -> None:\n    \"\"\"Устанавливает команды бота для меню.\"\"\"\n    commands = [\n        BotCommand(command=\"id\", description=\"Показать ID чата и топика\"),\n        BotCommand(command=\"set_chat_active\", description=\"Активировать отслеживание чата\"),\n        BotCommand(command=\"set_chat_inactive\", description=\"Деактивировать отслеживание чата\"),\n        BotCommand(command=\"set_city\", description=\"Установить город для чата\"),\n        BotCommand(command=\"help\", description=\"Помощь\"),\n    ]",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nasync def set_bot_commands(bot: Bot) -> None:\n    \"\"\"Устанавливает команды бота для меню.\"\"\"\n    commands = [\n        BotCommand(command=\"id\", description=\"Показать ID чата и топика\"),\n        BotCommand(command=\"set_chat_active\", description=\"Активировать отслеживание чата\"),\n        BotCommand(command=\"set_chat_inactive\", description=\"Деактивировать отслеживание чата\"),\n        BotCommand(command=\"set_city\", description=\"Установить город для чата\"),\n        BotCommand(command=\"set_type\", description=\"Установить тип для топика\"),\n        BotCommand(command=\"help\", description=\"Помощь\"),",
         "detail": "src.main",
         "documentation": {}
     }

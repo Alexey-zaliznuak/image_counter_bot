@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -17,6 +17,17 @@ from database import Database
 logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+# Фиксированные типы топиков для столбцов таблицы
+TOPIC_TYPES = [
+    "Продукция",
+    "Списание Продуктов",
+    "Чистота",
+    "Выручка и закупки",
+    "Заготовки",
+    "Обсуждение",
+    "Брендированная упаковка",
+]
 
 
 class GoogleSheetsService:
@@ -152,8 +163,9 @@ class GoogleSheetsService:
     def sync_to_sheets(self) -> None:
         """
         Синхронизирует данные из БД в Google Таблицу.
-        Новая структура: Дата | Город | Топик1 | Топик2 | ...
+        Структура: Дата | Город | Тип1 | Тип2 | ... (фиксированные типы)
         Для каждой даты несколько строк (по городам).
+        Топики с type='Не указан' игнорируются.
         """
         logger.info("Начало синхронизации с Google Sheets")
 
@@ -164,29 +176,22 @@ class GoogleSheetsService:
             logger.info("Нет данных для синхронизации")
             return
 
-        # Получаем все уникальные названия топиков из всех чатов
-        all_topic_names = self.db.get_all_topic_names_from_counts()
-        
-        if not all_topic_names:
-            logger.info("Нет топиков для синхронизации")
-            return
-
-        # Формируем заголовки: Дата, Город, Топик1, Топик2, ...
-        headers = ["Дата", "Город"] + all_topic_names
+        # Формируем заголовки: Дата, Город, + фиксированные типы топиков
+        headers = ["Дата", "Город"] + TOPIC_TYPES
 
         # Формируем строки данных
         rows: list[list[Any]] = []
         for date in dates:
-            # Получаем города с данными за эту дату
+            # Получаем города с данными за эту дату (только с топиками у которых установлен тип)
             cities = self.db.get_cities_with_data_for_date(date)
             
             formatted_date = self._format_date(date)
             
             for city in cities:
                 row = [formatted_date, city]
-                for topic_name in all_topic_names:
-                    count = self.db.get_image_count_by_city_topic_date(city, topic_name, date)
-                    row.append(count if count > 0 else "")
+                for topic_type in TOPIC_TYPES:
+                    count = self.db.get_image_count_by_city_type_date(city, topic_type, date)
+                    row.append(count)  # 0 если нет данных
                 rows.append(row)
 
         if not rows:

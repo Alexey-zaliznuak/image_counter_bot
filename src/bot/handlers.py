@@ -1,9 +1,14 @@
-﻿import logging
+import logging
 from typing import Optional
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 
 from config import COUNT_EACH_PHOTO_IN_ALBUM
 from database import Database
@@ -14,6 +19,17 @@ router = Router()
 
 # Глобальная ссылка на БД (устанавливается при setup)
 _db: Optional[Database] = None
+
+# Фиксированные типы топиков
+TOPIC_TYPES = [
+    "Продукция",
+    "Списание Продуктов",
+    "Чистота",
+    "Выручка и закупки",
+    "Заготовки",
+    "Обсуждение",
+    "Брендированная упаковка",
+]
 
 
 def get_topic_id(message: Message) -> int:
@@ -27,6 +43,15 @@ def get_topic_id(message: Message) -> int:
 def format_chat_topic(chat_id: int, topic_id: int) -> str:
     """Форматирует строку ChatId(TopicId)."""
     return f"{chat_id}({topic_id})"
+
+
+def get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:
+    """Создает клавиатуру с типами топиков."""
+    buttons = []
+    for topic_type in TOPIC_TYPES:
+        callback_data = f"set_type:{chat_id}:{topic_id}:{topic_type}"
+        buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 @router.message(Command("id"))
@@ -52,6 +77,7 @@ async def cmd_help(message: Message) -> None:
         "/set_chat_active - Включить статистику для этого чата\n"
         "/set_chat_inactive - Отключить статистику для этого чата\n"
         "/set_city <город> - Установить город для этого чата\n"
+        "/set_type - Установить тип для текущего топика\n"
     )
     await message.reply(response)
 
@@ -117,6 +143,62 @@ async def cmd_set_city(message: Message) -> None:
     # Показываем текущий город
     current_city = _db.get_chat_city(chat_id)
     await message.reply(f"Текущий город: {current_city}\n\nИспользование: /set_city Название города")
+
+
+@router.message(Command("set_type"))
+async def cmd_set_type(message: Message) -> None:
+    """
+    Обработчик команды /set_type - показывает меню выбора типа для топика.
+    """
+    if _db is None:
+        await message.reply("❌ Ошибка: база данных не инициализирована")
+        return
+
+    chat_id = message.chat.id
+    topic_id = get_topic_id(message)
+    
+    current_type = _db.get_topic_type(chat_id, topic_id)
+    topic_title = _db.get_topic_title(chat_id, topic_id)
+    
+    keyboard = get_type_keyboard(chat_id, topic_id)
+    
+    await message.reply(
+        f"Топик: {topic_title}\n"
+        f"Текущий тип: {current_type}\n\n"
+        f"Выберите тип для этого топика:",
+        reply_markup=keyboard
+    )
+    
+    logger.info(f"Команда /set_type: chat_id={chat_id}, topic_id={topic_id}")
+
+
+@router.callback_query(F.data.startswith("set_type:"))
+async def callback_set_type(callback: CallbackQuery) -> None:
+    """Обработчик callback для установки типа топика."""
+    if _db is None:
+        await callback.answer("❌ Ошибка: база данных не инициализирована")
+        return
+    
+    # Парсим callback_data: set_type:chat_id:topic_id:type
+    parts = callback.data.split(":", 3)
+    if len(parts) != 4:
+        await callback.answer("❌ Ошибка в данных")
+        return
+    
+    _, chat_id_str, topic_id_str, topic_type = parts
+    chat_id = int(chat_id_str)
+    topic_id = int(topic_id_str)
+    
+    _db.set_topic_type(chat_id, topic_id, topic_type)
+    
+    topic_title = _db.get_topic_title(chat_id, topic_id)
+    
+    await callback.message.edit_text(
+        f"✅ Тип для топика '{topic_title}' установлен: {topic_type}"
+    )
+    await callback.answer(f"Тип установлен: {topic_type}")
+    
+    logger.info(f"Тип топика установлен: {topic_type} (chat_id={chat_id}, topic_id={topic_id})")
 
 
 @router.message(Command("set_topic_name"))

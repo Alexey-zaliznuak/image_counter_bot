@@ -52,6 +52,7 @@ async def set_bot_commands(bot: Bot) -> None:
         BotCommand(command="set_chat_active", description="Активировать отслеживание чата"),
         BotCommand(command="set_chat_inactive", description="Деактивировать отслеживание чата"),
         BotCommand(command="set_city", description="Установить город для чата"),
+        BotCommand(command="set_type", description="Установить тип для топика"),
         BotCommand(command="help", description="Помощь"),
     ]
     await bot.set_my_commands(commands)
