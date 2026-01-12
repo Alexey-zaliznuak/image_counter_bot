@@ -402,7 +402,7 @@
         "kind": 2,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "def format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\ndef get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:\n    \"\"\"Создает клавиатуру с типами топиков.\"\"\"\n    buttons = []\n    for topic_type in TOPIC_TYPES:\n        callback_data = f\"set_type:{chat_id}:{topic_id}:{topic_type}\"\n        buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])\n    return InlineKeyboardMarkup(inline_keyboard=buttons)",
+        "peekOfCode": "def format_chat_topic(chat_id: int, topic_id: int) -> str:\n    \"\"\"Форматирует строку ChatId(TopicId).\"\"\"\n    return f\"{chat_id}({topic_id})\"\ndef get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:\n    \"\"\"Создает клавиатуру с типами топиков.\"\"\"\n    buttons = []\n    for idx, topic_type in enumerate(TOPIC_TYPES):\n        # Используем короткий формат: st:chat_id:topic_id:type_index (макс 64 байта)\n        callback_data = f\"st:{chat_id}:{topic_id}:{idx}\"\n        buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -411,7 +411,7 @@
         "kind": 2,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "def get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:\n    \"\"\"Создает клавиатуру с типами топиков.\"\"\"\n    buttons = []\n    for topic_type in TOPIC_TYPES:\n        callback_data = f\"set_type:{chat_id}:{topic_id}:{topic_type}\"\n        buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])\n    return InlineKeyboardMarkup(inline_keyboard=buttons)\n@router.message(Command(\"id\"))\nasync def cmd_id(message: Message) -> None:\n    \"\"\"Обработчик команды /id - показывает ID чата и топика.\"\"\"",
+        "peekOfCode": "def get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:\n    \"\"\"Создает клавиатуру с типами топиков.\"\"\"\n    buttons = []\n    for idx, topic_type in enumerate(TOPIC_TYPES):\n        # Используем короткий формат: st:chat_id:topic_id:type_index (макс 64 байта)\n        callback_data = f\"st:{chat_id}:{topic_id}:{idx}\"\n        buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])\n    return InlineKeyboardMarkup(inline_keyboard=buttons)\n@router.message(Command(\"id\"))\nasync def cmd_id(message: Message) -> None:",
         "detail": "src.bot.handlers",
         "documentation": {}
     },

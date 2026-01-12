@@ -48,8 +48,9 @@ def format_chat_topic(chat_id: int, topic_id: int) -> str:
 def get_type_keyboard(chat_id: int, topic_id: int) -> InlineKeyboardMarkup:
     """Создает клавиатуру с типами топиков."""
     buttons = []
-    for topic_type in TOPIC_TYPES:
-        callback_data = f"set_type:{chat_id}:{topic_id}:{topic_type}"
+    for idx, topic_type in enumerate(TOPIC_TYPES):
+        # Используем короткий формат: st:chat_id:topic_id:type_index (макс 64 байта)
+        callback_data = f"st:{chat_id}:{topic_id}:{idx}"
         buttons.append([InlineKeyboardButton(text=topic_type, callback_data=callback_data)])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -172,23 +173,29 @@ async def cmd_set_type(message: Message) -> None:
     logger.info(f"Команда /set_type: chat_id={chat_id}, topic_id={topic_id}")
 
 
-@router.callback_query(F.data.startswith("set_type:"))
+@router.callback_query(F.data.startswith("st:"))
 async def callback_set_type(callback: CallbackQuery) -> None:
     """Обработчик callback для установки типа топика."""
     if _db is None:
         await callback.answer("❌ Ошибка: база данных не инициализирована")
         return
     
-    # Парсим callback_data: set_type:chat_id:topic_id:type
-    parts = callback.data.split(":", 3)
+    # Парсим callback_data: st:chat_id:topic_id:type_index
+    parts = callback.data.split(":")
     if len(parts) != 4:
         await callback.answer("❌ Ошибка в данных")
         return
     
-    _, chat_id_str, topic_id_str, topic_type = parts
+    _, chat_id_str, topic_id_str, type_idx_str = parts
     chat_id = int(chat_id_str)
     topic_id = int(topic_id_str)
+    type_idx = int(type_idx_str)
     
+    if type_idx < 0 or type_idx >= len(TOPIC_TYPES):
+        await callback.answer("❌ Неверный тип")
+        return
+    
+    topic_type = TOPIC_TYPES[type_idx]
     _db.set_topic_type(chat_id, topic_id, topic_type)
     
     topic_title = _db.get_topic_title(chat_id, topic_id)
