@@ -71,6 +71,18 @@ class Database:
             if 'type' not in columns:
                 cursor.execute("ALTER TABLE topic_titles ADD COLUMN type TEXT NOT NULL DEFAULT 'Не указан'")
             
+            # Таблица для хранения реакций (👍/👎) в топиках "Продукция"
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS reaction_counts (
+                    chat_id INTEGER NOT NULL,
+                    topic_id INTEGER NOT NULL DEFAULT 0,
+                    date TEXT NOT NULL,
+                    positive_count INTEGER NOT NULL DEFAULT 0,
+                    negative_count INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (chat_id, topic_id, date)
+                )
+            """)
+            
             conn.commit()
 
     def _get_current_date(self) -> str:
@@ -304,3 +316,73 @@ class Database:
         chat_title = self.get_chat_title(chat_id)
         topic_title = self.get_topic_title(chat_id, topic_id)
         return f"{chat_title} | {topic_title}"
+
+    def update_reaction_count(
+        self, 
+        chat_id: int, 
+        topic_id: int, 
+        positive_delta: int = 0, 
+        negative_delta: int = 0
+    ) -> None:
+        """
+        Обновляет счётчик реакций (положительных/отрицательных).
+        Дельта может быть положительной (добавление) или отрицательной (удаление).
+        """
+        date = self._get_current_date()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO reaction_counts (chat_id, topic_id, date, positive_count, negative_count)
+                VALUES (?, ?, ?, MAX(0, ?), MAX(0, ?))
+                ON CONFLICT(chat_id, topic_id, date) 
+                DO UPDATE SET 
+                    positive_count = MAX(0, positive_count + ?),
+                    negative_count = MAX(0, negative_count + ?)""",
+                (chat_id, topic_id, date, positive_delta, negative_delta, positive_delta, negative_delta)
+            )
+            conn.commit()
+
+    def get_reaction_count_by_city_date(
+        self, city: str, date: str
+    ) -> tuple[int, int]:
+        """
+        Возвращает сумму реакций (positive, negative) для города/даты.
+        Учитывает только топики с типом 'Продукция'.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Получаем все чаты с указанным городом
+            cursor.execute(
+                "SELECT chat_id FROM active_chats WHERE city = ?",
+                (city,)
+            )
+            chat_ids = [row["chat_id"] for row in cursor.fetchall()]
+            
+            if not chat_ids:
+                return (0, 0)
+            
+            total_positive = 0
+            total_negative = 0
+            
+            for chat_id in chat_ids:
+                # Находим все topic_id с типом "Продукция" в этом чате
+                cursor.execute(
+                    "SELECT topic_id FROM topic_titles WHERE chat_id = ? AND type = ?",
+                    (chat_id, "Продукция")
+                )
+                topic_ids = [row["topic_id"] for row in cursor.fetchall()]
+                
+                for topic_id in topic_ids:
+                    cursor.execute(
+                        """SELECT positive_count, negative_count 
+                        FROM reaction_counts 
+                        WHERE chat_id = ? AND topic_id = ? AND date = ?""",
+                        (chat_id, topic_id, date)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        total_positive += row["positive_count"]
+                        total_negative += row["negative_count"]
+            
+            return (total_positive, total_negative)

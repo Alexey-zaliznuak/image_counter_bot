@@ -8,6 +8,8 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
+    MessageReactionUpdated,
+    ReactionTypeEmoji,
 )
 
 from config import COUNT_EACH_PHOTO_IN_ALBUM
@@ -20,15 +22,15 @@ router = Router()
 # Глобальная ссылка на БД (устанавливается при setup)
 _db: Optional[Database] = None
 
-# Фиксированные типы топиков
+# Фиксированные типы топиков (порядок синхронизирован с sheets.py)
 TOPIC_TYPES = [
-    "Продукция",
     "Списание Продуктов",
     "Чистота",
     "Выручка и закупки",
     "Заготовки",
     "Обсуждение",
     "Брендированная упаковка",
+    "Продукция",
 ]
 
 
@@ -301,6 +303,66 @@ async def handle_photo(message: Message) -> None:
     
     display_name = _db.get_display_name(chat_id, topic_id)
     logger.info(f"📷 Фото получено: {display_name}")
+
+
+# Эмодзи для подсчёта реакций
+POSITIVE_REACTIONS = {"👍", "❤️", "🔥", "🎉", "💯"}  # можно расширить
+NEGATIVE_REACTIONS = {"👎", "💩", "🤮"}  # можно расширить
+
+
+def _count_reaction_type(reactions: list, emoji_set: set[str]) -> int:
+    """Подсчитывает количество реакций определённого типа."""
+    count = 0
+    for reaction in reactions:
+        if isinstance(reaction, ReactionTypeEmoji) and reaction.emoji in emoji_set:
+            count += 1
+    return count
+
+
+@router.message_reaction()
+async def handle_reaction(event: MessageReactionUpdated) -> None:
+    """
+    Обработчик изменения реакций на сообщениях.
+    Считает 👍/👎 только в топиках с типом "Продукция".
+    """
+    if _db is None:
+        return
+
+    chat_id = event.chat.id
+    topic_id = event.message_thread_id or 0
+    
+    # Проверяем, активен ли этот чат
+    if not _db.is_chat_active(chat_id):
+        return
+    
+    # Проверяем, что топик имеет тип "Продукция"
+    topic_type = _db.get_topic_type(chat_id, topic_id)
+    if topic_type != "Продукция":
+        return
+    
+    # Считаем старые и новые реакции
+    old_reactions = event.old_reaction or []
+    new_reactions = event.new_reaction or []
+    
+    old_positive = _count_reaction_type(old_reactions, POSITIVE_REACTIONS)
+    old_negative = _count_reaction_type(old_reactions, NEGATIVE_REACTIONS)
+    new_positive = _count_reaction_type(new_reactions, POSITIVE_REACTIONS)
+    new_negative = _count_reaction_type(new_reactions, NEGATIVE_REACTIONS)
+    
+    # Вычисляем дельту
+    positive_delta = new_positive - old_positive
+    negative_delta = new_negative - old_negative
+    
+    # Если есть изменения - обновляем счётчик
+    if positive_delta != 0 or negative_delta != 0:
+        _db.update_reaction_count(chat_id, topic_id, positive_delta, negative_delta)
+        
+        display_name = _db.get_display_name(chat_id, topic_id)
+        logger.info(
+            f"👍👎 Реакция: {display_name} | "
+            f"positive: {'+' if positive_delta >= 0 else ''}{positive_delta}, "
+            f"negative: {'+' if negative_delta >= 0 else ''}{negative_delta}"
+        )
 
 
 def setup_handlers(dp: Dispatcher, db: Database) -> None:

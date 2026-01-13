@@ -19,14 +19,21 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Фиксированные типы топиков для столбцов таблицы
+# "Продукция" перемещена в конец, после неё идут столбцы реакций
 TOPIC_TYPES = [
-    "Продукция",
     "Списание Продуктов",
     "Чистота",
     "Выручка и закупки",
     "Заготовки",
     "Обсуждение",
     "Брендированная упаковка",
+    "Продукция",
+]
+
+# Дополнительные столбцы для реакций (добавляются после TOPIC_TYPES)
+REACTION_COLUMNS = [
+    "Продукция | Положительные реакции",
+    "Продукция | Негативные реакции",
 ]
 
 
@@ -163,7 +170,7 @@ class GoogleSheetsService:
     def sync_to_sheets(self) -> None:
         """
         Синхронизирует данные из БД в Google Таблицу.
-        Структура: Дата | Город | Тип1 | Тип2 | ... (фиксированные типы)
+        Структура: Дата | Город | Тип1 | Тип2 | ... | Продукция | Реакции+ | Реакции-
         Для каждой даты несколько строк (по городам).
         Топики с type='Не указан' игнорируются.
         """
@@ -176,8 +183,8 @@ class GoogleSheetsService:
             logger.info("Нет данных для синхронизации")
             return
 
-        # Формируем заголовки: Дата, Город, + фиксированные типы топиков
-        headers = ["Дата", "Город"] + TOPIC_TYPES
+        # Формируем заголовки: Дата, Город, типы топиков, столбцы реакций
+        headers = ["Дата", "Город"] + TOPIC_TYPES + REACTION_COLUMNS
 
         # Формируем строки данных
         rows: list[list[Any]] = []
@@ -189,9 +196,16 @@ class GoogleSheetsService:
             
             for city in cities:
                 row = [formatted_date, city]
+                # Добавляем количество фото по типам
                 for topic_type in TOPIC_TYPES:
                     count = self.db.get_image_count_by_city_type_date(city, topic_type, date)
                     row.append(count)  # 0 если нет данных
+                
+                # Добавляем реакции (только для топиков "Продукция")
+                positive_reactions, negative_reactions = self.db.get_reaction_count_by_city_date(city, date)
+                row.append(positive_reactions)
+                row.append(negative_reactions)
+                
                 rows.append(row)
 
         if not rows:
