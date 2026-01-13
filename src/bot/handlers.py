@@ -333,9 +333,9 @@ async def handle_all_messages(message: Message) -> None:
         _db.save_message_topic(chat_id, message.message_id, topic_id)
 
 
-# Эмодзи для подсчёта реакций
-POSITIVE_REACTIONS = {"👍", "❤️", "🔥", "🎉", "💯"}  # можно расширить
-NEGATIVE_REACTIONS = {"👎", "💩", "🤮"}  # можно расширить
+# Эмодзи для подсчёта реакций (только лайк/дизлайк)
+POSITIVE_REACTIONS = {"👍"}
+NEGATIVE_REACTIONS = {"👎"}
 
 
 def _count_reaction_type(reactions: list, emoji_set: set[str]) -> int:

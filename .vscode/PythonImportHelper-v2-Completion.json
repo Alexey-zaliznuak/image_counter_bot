@@ -481,7 +481,7 @@
         "kind": 5,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "POSITIVE_REACTIONS = {\"👍\", \"❤️\", \"🔥\", \"🎉\", \"💯\"}  # можно расширить\nNEGATIVE_REACTIONS = {\"👎\", \"💩\", \"🤮\"}  # можно расширить\ndef _count_reaction_type(reactions: list, emoji_set: set[str]) -> int:\n    \"\"\"Подсчитывает количество реакций определённого типа.\"\"\"\n    count = 0\n    for reaction in reactions:\n        if isinstance(reaction, ReactionTypeEmoji) and reaction.emoji in emoji_set:\n            count += 1\n    return count\n@router.message_reaction()",
+        "peekOfCode": "POSITIVE_REACTIONS = {\"👍\"}\nNEGATIVE_REACTIONS = {\"👎\"}\ndef _count_reaction_type(reactions: list, emoji_set: set[str]) -> int:\n    \"\"\"Подсчитывает количество реакций определённого типа.\"\"\"\n    count = 0\n    for reaction in reactions:\n        if isinstance(reaction, ReactionTypeEmoji) and reaction.emoji in emoji_set:\n            count += 1\n    return count\n@router.message_reaction()",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -490,7 +490,7 @@
         "kind": 5,
         "importPath": "src.bot.handlers",
         "description": "src.bot.handlers",
-        "peekOfCode": "NEGATIVE_REACTIONS = {\"👎\", \"💩\", \"🤮\"}  # можно расширить\ndef _count_reaction_type(reactions: list, emoji_set: set[str]) -> int:\n    \"\"\"Подсчитывает количество реакций определённого типа.\"\"\"\n    count = 0\n    for reaction in reactions:\n        if isinstance(reaction, ReactionTypeEmoji) and reaction.emoji in emoji_set:\n            count += 1\n    return count\n@router.message_reaction()\nasync def handle_reaction(event: MessageReactionUpdated) -> None:",
+        "peekOfCode": "NEGATIVE_REACTIONS = {\"👎\"}\ndef _count_reaction_type(reactions: list, emoji_set: set[str]) -> int:\n    \"\"\"Подсчитывает количество реакций определённого типа.\"\"\"\n    count = 0\n    for reaction in reactions:\n        if isinstance(reaction, ReactionTypeEmoji) and reaction.emoji in emoji_set:\n            count += 1\n    return count\n@router.message_reaction()\nasync def handle_reaction(event: MessageReactionUpdated) -> None:",
         "detail": "src.bot.handlers",
         "documentation": {}
     },
@@ -580,7 +580,7 @@
         "kind": 5,
         "importPath": "src.services.sheets",
         "description": "src.services.sheets",
-        "peekOfCode": "REACTION_COLUMNS = [\n    \"Продукция | Положительные реакции\",\n    \"Продукция | Негативные реакции\",\n]\nclass GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None",
+        "peekOfCode": "REACTION_COLUMNS = [\n    \"Лайки\",\n    \"Дизлайки\",\n]\nclass GoogleSheetsService:\n    def __init__(self, db: Database):\n        self.db = db\n        self.spreadsheet_id = SPREADSHEET_ID\n        self.sheet_name = REPORT_SHEET_NAME\n        self._service = None",
         "detail": "src.services.sheets",
         "documentation": {}
     },
