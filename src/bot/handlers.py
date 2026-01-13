@@ -290,6 +290,12 @@ async def handle_photo(message: Message) -> None:
     if not _db.is_chat_active(chat_id):
         return
 
+    # Сохраняем связь message_id -> topic_id для топиков "Продукция"
+    # (нужно для подсчёта реакций, т.к. в событии реакции нет topic_id)
+    topic_type = _db.get_topic_type(chat_id, topic_id)
+    if topic_type == "Продукция":
+        _db.save_message_topic(chat_id, message.message_id, topic_id)
+
     # Определяем сколько фото считать
     if COUNT_EACH_PHOTO_IN_ALBUM:
         count = 1
@@ -303,6 +309,28 @@ async def handle_photo(message: Message) -> None:
     
     display_name = _db.get_display_name(chat_id, topic_id)
     logger.info(f"📷 Фото получено: {display_name}")
+
+
+@router.message()
+async def handle_all_messages(message: Message) -> None:
+    """
+    Обработчик всех сообщений - сохраняет связь message_id -> topic_id
+    для топиков "Продукция" (для последующего подсчёта реакций).
+    """
+    if _db is None:
+        return
+
+    chat_id = message.chat.id
+    topic_id = get_topic_id(message)
+    
+    # Проверяем, активен ли этот чат
+    if not _db.is_chat_active(chat_id):
+        return
+    
+    # Сохраняем связь только для топиков "Продукция"
+    topic_type = _db.get_topic_type(chat_id, topic_id)
+    if topic_type == "Продукция":
+        _db.save_message_topic(chat_id, message.message_id, topic_id)
 
 
 # Эмодзи для подсчёта реакций
@@ -329,15 +357,16 @@ async def handle_reaction(event: MessageReactionUpdated) -> None:
         return
 
     chat_id = event.chat.id
-    topic_id = event.message_thread_id or 0
+    message_id = event.message_id
     
     # Проверяем, активен ли этот чат
     if not _db.is_chat_active(chat_id):
         return
     
-    # Проверяем, что топик имеет тип "Продукция"
-    topic_type = _db.get_topic_type(chat_id, topic_id)
-    if topic_type != "Продукция":
+    # Ищем topic_id по message_id (т.к. в событии реакции нет message_thread_id)
+    topic_id = _db.get_topic_by_message(chat_id, message_id)
+    if topic_id is None:
+        # Сообщение не из топика "Продукция" или было отправлено до запуска бота
         return
     
     # Считаем старые и новые реакции

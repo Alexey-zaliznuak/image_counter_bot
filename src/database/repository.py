@@ -83,6 +83,18 @@ class Database:
                 )
             """)
             
+            # Таблица для хранения связи message_id -> topic_id
+            # (нужна для определения топика при получении реакции)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS message_topics (
+                    chat_id INTEGER NOT NULL,
+                    message_id INTEGER NOT NULL,
+                    topic_id INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY (chat_id, message_id)
+                )
+            """)
+            
             conn.commit()
 
     def _get_current_date(self) -> str:
@@ -341,6 +353,41 @@ class Database:
                 (chat_id, topic_id, date, positive_delta, negative_delta, positive_delta, negative_delta)
             )
             conn.commit()
+
+    def save_message_topic(self, chat_id: int, message_id: int, topic_id: int) -> None:
+        """Сохраняет связь message_id -> topic_id для последующего определения топика при реакции."""
+        date = self._get_current_date()
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT OR REPLACE INTO message_topics (chat_id, message_id, topic_id, created_at)
+                VALUES (?, ?, ?, ?)""",
+                (chat_id, message_id, topic_id, date)
+            )
+            conn.commit()
+
+    def get_topic_by_message(self, chat_id: int, message_id: int) -> Optional[int]:
+        """Возвращает topic_id для сообщения или None если не найдено."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT topic_id FROM message_topics WHERE chat_id = ? AND message_id = ?",
+                (chat_id, message_id)
+            )
+            row = cursor.fetchone()
+            return row["topic_id"] if row else None
+
+    def cleanup_old_message_topics(self, days: int = 7) -> int:
+        """Удаляет старые записи из message_topics (старше N дней). Возвращает количество удалённых."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """DELETE FROM message_topics 
+                WHERE date(created_at) < date('now', '-' || ? || ' days')""",
+                (days,)
+            )
+            conn.commit()
+            return cursor.rowcount
 
     def get_reaction_count_by_city_date(
         self, city: str, date: str
