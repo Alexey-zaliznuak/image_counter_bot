@@ -19,15 +19,15 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Фиксированные типы топиков для столбцов таблицы
-# "Продукция" перемещена в конец, после неё идут столбцы реакций
+# Порядок: Продукция, Списание Продуктов, Выручка и закупки, Чистота, Заготовки, Брендированная упаковка, Обсуждение
 TOPIC_TYPES = [
-    "Списание Продуктов",
-    "Чистота",
-    "Выручка и закупки",
-    "Заготовки",
-    "Обсуждение",
-    "Брендированная упаковка",
     "Продукция",
+    "Списание Продуктов",
+    "Выручка и закупки",
+    "Чистота",
+    "Заготовки",
+    "Брендированная упаковка",
+    "Обсуждение",
 ]
 
 # Дополнительные столбцы для реакций (добавляются после TOPIC_TYPES)
@@ -138,40 +138,53 @@ class GoogleSheetsService:
             logger.error(f"Ошибка получения ID листа: {e}")
             return None
 
-    def _auto_resize_columns(self, num_columns: int) -> None:
-        """Автоматически подгоняет ширину столбцов под содержимое."""
+    def _set_column_widths(self, headers: list[str]) -> None:
+        """Устанавливает ширину столбцов так, чтобы заголовки помещались в одну строку."""
         sheet_id = self._get_sheet_id()
         if sheet_id is None:
             logger.error("Не удалось получить ID листа для изменения ширины столбцов")
             return
         
+        # Ширина столбцов в пикселях (примерно 8 пикселей на символ + отступы)
+        # Минимальная ширина 80 пикселей
+        column_widths = []
+        for header in headers:
+            # Рассчитываем ширину на основе длины заголовка
+            width = max(80, len(header) * 10 + 20)
+            column_widths.append(width)
+        
         service = self._get_service()
         try:
-            request = {
-                "requests": [{
-                    "autoResizeDimensions": {
-                        "dimensions": {
+            requests = []
+            for i, width in enumerate(column_widths):
+                requests.append({
+                    "updateDimensionProperties": {
+                        "range": {
                             "sheetId": sheet_id,
                             "dimension": "COLUMNS",
-                            "startIndex": 0,
-                            "endIndex": num_columns
-                        }
+                            "startIndex": i,
+                            "endIndex": i + 1
+                        },
+                        "properties": {
+                            "pixelSize": width
+                        },
+                        "fields": "pixelSize"
                     }
-                }]
-            }
+                })
+            
             service.spreadsheets().batchUpdate(
                 spreadsheetId=self.spreadsheet_id,
-                body=request
+                body={"requests": requests}
             ).execute()
-            logger.info(f"Ширина {num_columns} столбцов автоматически подогнана")
+            logger.info(f"Установлена ширина для {len(headers)} столбцов")
         except HttpError as e:
-            logger.error(f"Ошибка автоподгонки ширины столбцов: {e}")
+            logger.error(f"Ошибка установки ширины столбцов: {e}")
 
     def sync_to_sheets(self) -> None:
         """
         Синхронизирует данные из БД в Google Таблицу.
-        Структура: Дата | Город | Тип1 | Тип2 | ... | Продукция | Реакции+ | Реакции-
-        Для каждой даты несколько строк (по городам).
+        Структура: Дата | Филиал | Продукция | Списание Продуктов | ... | Обсуждение | Лайки | Дизлайки
+        Для каждой даты несколько строк (по филиалам).
         Топики с type='Не указан' игнорируются.
         """
         logger.info("Начало синхронизации с Google Sheets")
@@ -183,8 +196,8 @@ class GoogleSheetsService:
             logger.info("Нет данных для синхронизации")
             return
 
-        # Формируем заголовки: Дата, Город, типы топиков, столбцы реакций
-        headers = ["Дата", "Город"] + TOPIC_TYPES + REACTION_COLUMNS
+        # Формируем заголовки: Дата, Филиал, типы топиков, столбцы реакций
+        headers = ["Дата", "Филиал"] + TOPIC_TYPES + REACTION_COLUMNS
 
         # Формируем строки данных
         rows: list[list[Any]] = []
@@ -231,7 +244,7 @@ class GoogleSheetsService:
             self._write_batch(range_name, batch)
             logger.info(f"Записано строк: {min(i + SYNC_BATCH_SIZE, total_rows)}/{total_rows}")
 
-        # Автоматически подгоняем ширину столбцов
-        self._auto_resize_columns(len(headers))
+        # Устанавливаем ширину столбцов для заголовков в одну строку
+        self._set_column_widths(headers)
 
         logger.info(f"Синхронизация завершена. Записано {total_rows} строк данных")

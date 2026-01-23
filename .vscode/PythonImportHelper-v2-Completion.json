@@ -553,7 +553,7 @@
         "kind": 5,
         "importPath": "src.services.sheets",
         "description": "src.services.sheets",
-        "peekOfCode": "logger = logging.getLogger(__name__)\nSCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\n# Фиксированные типы топиков для столбцов таблицы\n# \"Продукция\" перемещена в конец, после неё идут столбцы реакций\nTOPIC_TYPES = [\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",\n    \"Обсуждение\",",
+        "peekOfCode": "logger = logging.getLogger(__name__)\nSCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\n# Фиксированные типы топиков для столбцов таблицы\n# Порядок: Продукция, Списание Продуктов, Выручка и закупки, Чистота, Заготовки, Брендированная упаковка, Обсуждение\nTOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Выручка и закупки\",\n    \"Чистота\",\n    \"Заготовки\",",
         "detail": "src.services.sheets",
         "documentation": {}
     },
@@ -562,7 +562,7 @@
         "kind": 5,
         "importPath": "src.services.sheets",
         "description": "src.services.sheets",
-        "peekOfCode": "SCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\n# Фиксированные типы топиков для столбцов таблицы\n# \"Продукция\" перемещена в конец, после неё идут столбцы реакций\nTOPIC_TYPES = [\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",\n    \"Обсуждение\",\n    \"Брендированная упаковка\",",
+        "peekOfCode": "SCOPES = [\"https://www.googleapis.com/auth/spreadsheets\"]\n# Фиксированные типы топиков для столбцов таблицы\n# Порядок: Продукция, Списание Продуктов, Выручка и закупки, Чистота, Заготовки, Брендированная упаковка, Обсуждение\nTOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Выручка и закупки\",\n    \"Чистота\",\n    \"Заготовки\",\n    \"Брендированная упаковка\",",
         "detail": "src.services.sheets",
         "documentation": {}
     },
@@ -571,7 +571,7 @@
         "kind": 5,
         "importPath": "src.services.sheets",
         "description": "src.services.sheets",
-        "peekOfCode": "TOPIC_TYPES = [\n    \"Списание Продуктов\",\n    \"Чистота\",\n    \"Выручка и закупки\",\n    \"Заготовки\",\n    \"Обсуждение\",\n    \"Брендированная упаковка\",\n    \"Продукция\",\n]\n# Дополнительные столбцы для реакций (добавляются после TOPIC_TYPES)",
+        "peekOfCode": "TOPIC_TYPES = [\n    \"Продукция\",\n    \"Списание Продуктов\",\n    \"Выручка и закупки\",\n    \"Чистота\",\n    \"Заготовки\",\n    \"Брендированная упаковка\",\n    \"Обсуждение\",\n]\n# Дополнительные столбцы для реакций (добавляются после TOPIC_TYPES)",
         "detail": "src.services.sheets",
         "documentation": {}
     },
