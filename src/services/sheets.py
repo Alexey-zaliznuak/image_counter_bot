@@ -138,47 +138,64 @@ class GoogleSheetsService:
             logger.error(f"Ошибка получения ID листа: {e}")
             return None
 
-    def _set_column_widths(self, headers: list[str]) -> None:
-        """Устанавливает ширину столбцов так, чтобы заголовки помещались в одну строку."""
+    def _format_sheet(self, num_columns: int) -> None:
+        """
+        Форматирует лист:
+        - Одинаковая ширина для всех столбцов (100 пикселей - стандарт Google Sheets)
+        - Высота первой строки (заголовки) в 2.5 раза больше обычной
+        """
         sheet_id = self._get_sheet_id()
         if sheet_id is None:
-            logger.error("Не удалось получить ID листа для изменения ширины столбцов")
+            logger.error("Не удалось получить ID листа для форматирования")
             return
         
-        # Ширина столбцов в пикселях (примерно 8 пикселей на символ + отступы)
-        # Минимальная ширина 80 пикселей
-        column_widths = []
-        for header in headers:
-            # Рассчитываем ширину на основе длины заголовка
-            width = max(80, len(header) * 10 + 20)
-            column_widths.append(width)
+        # Стандартная ширина столбца в Google Sheets - 100 пикселей
+        column_width = 100
+        # Стандартная высота строки ~21 пиксель, 2.5x = 53 пикселя
+        header_row_height = 53
         
         service = self._get_service()
         try:
-            requests = []
-            for i, width in enumerate(column_widths):
-                requests.append({
+            requests = [
+                # Установка одинаковой ширины для всех столбцов
+                {
                     "updateDimensionProperties": {
                         "range": {
                             "sheetId": sheet_id,
                             "dimension": "COLUMNS",
-                            "startIndex": i,
-                            "endIndex": i + 1
+                            "startIndex": 0,
+                            "endIndex": num_columns
                         },
                         "properties": {
-                            "pixelSize": width
+                            "pixelSize": column_width
                         },
                         "fields": "pixelSize"
                     }
-                })
+                },
+                # Установка высоты первой строки (заголовки)
+                {
+                    "updateDimensionProperties": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            "dimension": "ROWS",
+                            "startIndex": 0,
+                            "endIndex": 1
+                        },
+                        "properties": {
+                            "pixelSize": header_row_height
+                        },
+                        "fields": "pixelSize"
+                    }
+                }
+            ]
             
             service.spreadsheets().batchUpdate(
                 spreadsheetId=self.spreadsheet_id,
                 body={"requests": requests}
             ).execute()
-            logger.info(f"Установлена ширина для {len(headers)} столбцов")
+            logger.info(f"Отформатирован лист: {num_columns} столбцов по {column_width}px, высота заголовка {header_row_height}px")
         except HttpError as e:
-            logger.error(f"Ошибка установки ширины столбцов: {e}")
+            logger.error(f"Ошибка форматирования листа: {e}")
 
     def sync_to_sheets(self) -> None:
         """
@@ -244,7 +261,7 @@ class GoogleSheetsService:
             self._write_batch(range_name, batch)
             logger.info(f"Записано строк: {min(i + SYNC_BATCH_SIZE, total_rows)}/{total_rows}")
 
-        # Устанавливаем ширину столбцов для заголовков в одну строку
-        self._set_column_widths(headers)
+        # Форматируем лист (ширина столбцов, высота заголовка)
+        self._format_sheet(len(headers))
 
         logger.info(f"Синхронизация завершена. Записано {total_rows} строк данных")
