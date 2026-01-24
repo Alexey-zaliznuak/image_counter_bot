@@ -149,8 +149,8 @@ class GoogleSheetsService:
             logger.error("Не удалось получить ID листа для форматирования")
             return
         
-        # Стандартная ширина столбца в Google Sheets - 100 пикселей
-        column_width = 100
+        # Ширина столбца 120 пикселей
+        column_width = 120
         # Стандартная высота строки ~21 пиксель, 2.5x = 53 пикселя
         header_row_height = 53
         
