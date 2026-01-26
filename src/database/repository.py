@@ -334,13 +334,20 @@ class Database:
         chat_id: int, 
         topic_id: int, 
         positive_delta: int = 0, 
-        negative_delta: int = 0
+        negative_delta: int = 0,
+        date: Optional[str] = None
     ) -> None:
         """
         Обновляет счётчик реакций (положительных/отрицательных).
         Дельта может быть положительной (добавление) или отрицательной (удаление).
+        
+        Args:
+            date: Дата для записи реакции. Если None - используется текущая дата.
+                  Обычно передаётся дата создания сообщения, чтобы реакция
+                  засчитывалась на тот день, когда было создано сообщение.
         """
-        date = self._get_current_date()
+        if date is None:
+            date = self._get_current_date()
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -376,6 +383,31 @@ class Database:
             )
             row = cursor.fetchone()
             return row["topic_id"] if row else None
+
+    def get_message_created_date(self, chat_id: int, message_id: int) -> Optional[str]:
+        """Возвращает дату создания сообщения или None если не найдено."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT created_at FROM message_topics WHERE chat_id = ? AND message_id = ?",
+                (chat_id, message_id)
+            )
+            row = cursor.fetchone()
+            return row["created_at"] if row else None
+
+    def get_message_info(self, chat_id: int, message_id: int) -> Optional[tuple[int, str]]:
+        """
+        Возвращает (topic_id, created_at) для сообщения или None если не найдено.
+        Оптимизация: один запрос вместо двух.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT topic_id, created_at FROM message_topics WHERE chat_id = ? AND message_id = ?",
+                (chat_id, message_id)
+            )
+            row = cursor.fetchone()
+            return (row["topic_id"], row["created_at"]) if row else None
 
     def cleanup_old_message_topics(self, days: int = 7) -> int:
         """Удаляет старые записи из message_topics (старше N дней). Возвращает количество удалённых."""

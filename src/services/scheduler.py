@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 # Интервал очистки старых message_topics (в часах)
 CLEANUP_INTERVAL_HOURS = 1
-# Возраст записей для удаления (в днях)
-CLEANUP_AGE_DAYS = 30
+# Возраст записей для удаления (в днях) - 3 месяца
+CLEANUP_AGE_DAYS = 90
 
 
 class SyncScheduler:

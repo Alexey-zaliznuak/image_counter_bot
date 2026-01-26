@@ -352,6 +352,10 @@ async def handle_reaction(event: MessageReactionUpdated) -> None:
     """
     Обработчик изменения реакций на сообщениях.
     Считает 👍/👎 только в топиках с типом "Продукция".
+    
+    Важно: реакция засчитывается на дату создания сообщения, а не на дату
+    постановки реакции. Например, если сообщение создано 1 мая, а реакция
+    поставлена 10 мая - лайк идёт в статистику за 1 мая.
     """
     if _db is None:
         return
@@ -363,11 +367,14 @@ async def handle_reaction(event: MessageReactionUpdated) -> None:
     if not _db.is_chat_active(chat_id):
         return
     
-    # Ищем topic_id по message_id (т.к. в событии реакции нет message_thread_id)
-    topic_id = _db.get_topic_by_message(chat_id, message_id)
-    if topic_id is None:
+    # Получаем topic_id и дату создания сообщения
+    # (нужно для определения топика и для привязки реакции к дате сообщения)
+    message_info = _db.get_message_info(chat_id, message_id)
+    if message_info is None:
         # Сообщение не из топика "Продукция" или было отправлено до запуска бота
         return
+    
+    topic_id, message_date = message_info
     
     # Считаем старые и новые реакции
     old_reactions = event.old_reaction or []
@@ -383,12 +390,13 @@ async def handle_reaction(event: MessageReactionUpdated) -> None:
     negative_delta = new_negative - old_negative
     
     # Если есть изменения - обновляем счётчик
+    # Реакция записывается на дату создания сообщения (message_date)
     if positive_delta != 0 or negative_delta != 0:
-        _db.update_reaction_count(chat_id, topic_id, positive_delta, negative_delta)
+        _db.update_reaction_count(chat_id, topic_id, positive_delta, negative_delta, date=message_date)
         
         display_name = _db.get_display_name(chat_id, topic_id)
         logger.info(
-            f"👍👎 Реакция: {display_name} | "
+            f"👍👎 Реакция: {display_name} | дата сообщения: {message_date} | "
             f"positive: {'+' if positive_delta >= 0 else ''}{positive_delta}, "
             f"negative: {'+' if negative_delta >= 0 else ''}{negative_delta}"
         )

@@ -517,7 +517,7 @@
         "kind": 5,
         "importPath": "src.services.scheduler",
         "description": "src.services.scheduler",
-        "peekOfCode": "logger = logging.getLogger(__name__)\n# Интервал очистки старых message_topics (в часах)\nCLEANUP_INTERVAL_HOURS = 1\n# Возраст записей для удаления (в днях)\nCLEANUP_AGE_DAYS = 30\nclass SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._sync_task: asyncio.Task | None = None",
+        "peekOfCode": "logger = logging.getLogger(__name__)\n# Интервал очистки старых message_topics (в часах)\nCLEANUP_INTERVAL_HOURS = 1\n# Возраст записей для удаления (в днях) - 3 месяца\nCLEANUP_AGE_DAYS = 90\nclass SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._sync_task: asyncio.Task | None = None",
         "detail": "src.services.scheduler",
         "documentation": {}
     },
@@ -526,7 +526,7 @@
         "kind": 5,
         "importPath": "src.services.scheduler",
         "description": "src.services.scheduler",
-        "peekOfCode": "CLEANUP_INTERVAL_HOURS = 1\n# Возраст записей для удаления (в днях)\nCLEANUP_AGE_DAYS = 30\nclass SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._sync_task: asyncio.Task | None = None\n        self._cleanup_task: asyncio.Task | None = None\n        self._running = False",
+        "peekOfCode": "CLEANUP_INTERVAL_HOURS = 1\n# Возраст записей для удаления (в днях) - 3 месяца\nCLEANUP_AGE_DAYS = 90\nclass SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._sync_task: asyncio.Task | None = None\n        self._cleanup_task: asyncio.Task | None = None\n        self._running = False",
         "detail": "src.services.scheduler",
         "documentation": {}
     },
@@ -535,7 +535,7 @@
         "kind": 5,
         "importPath": "src.services.scheduler",
         "description": "src.services.scheduler",
-        "peekOfCode": "CLEANUP_AGE_DAYS = 30\nclass SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._sync_task: asyncio.Task | None = None\n        self._cleanup_task: asyncio.Task | None = None\n        self._running = False\n    async def _sync_loop(self) -> None:\n        \"\"\"Основной цикл синхронизации.\"\"\"",
+        "peekOfCode": "CLEANUP_AGE_DAYS = 90\nclass SyncScheduler:\n    def __init__(self, db: Database):\n        self.db = db\n        self.sheets_service = GoogleSheetsService(db)\n        self._sync_task: asyncio.Task | None = None\n        self._cleanup_task: asyncio.Task | None = None\n        self._running = False\n    async def _sync_loop(self) -> None:\n        \"\"\"Основной цикл синхронизации.\"\"\"",
         "detail": "src.services.scheduler",
         "documentation": {}
     },
