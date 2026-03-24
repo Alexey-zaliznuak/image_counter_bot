@@ -1,9 +1,10 @@
 """
 Обработчики бота MAX: учёт фото и метаданных чата в общей БД с Telegram-ботом.
 
-Событий реакций (👍/👎) в публичном API MAX / maxapi на момент реализации нет —
-строки в reaction_counts для чатов MAX заполняет только TG-бот, когда появится
-ивент реакций в MAX, сюда можно добавить обработчик по аналогии с bot/handlers.
+Реакции в MAX: ответ (reply) на сообщение с текстом, состоящим только из 👍 или 👎
+(с опциональным символом FE0F), без вложений — плюсуется reaction_counts с messenger=max
+к исходному сообщению (mid родителя должен быть в message_topics, топик «Продукция»).
+mid сообщений хранится в message_topics.message_id (строка).
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from zoneinfo import ZoneInfo
 from maxapi import Dispatcher
 from maxapi.enums.attachment import AttachmentType
 from maxapi.enums.chat_type import ChatType
+from maxapi.enums.message_link_type import MessageLinkType
 from maxapi.filters import F
 from maxapi.types import (
     BotStarted,
@@ -38,6 +40,10 @@ _db: Database | None = None
 
 # В MAX один групповой чат = один «топик» в смысле отчётов (как «Продукция города Z»).
 MAX_TOPIC_ID = 0
+
+# 👍 👎 и вариант с U+FE0F (как приходит из некоторых клиентов)
+_THUMB_UP = ("\U0001f44d", "\U0001f44d\ufe0f")
+_THUMB_DOWN = ("\U0001f44e", "\U0001f44e\ufe0f")
 
 
 def _message_date_from_max_ts(timestamp_ms: int) -> str:
@@ -77,6 +83,59 @@ def _type_keyboard(chat_id: int) -> list:
         payload = f"st:{chat_id}:{MAX_TOPIC_ID}:{idx}"
         kb.row(CallbackButton(text=topic_type[:64], payload=payload))
     return [kb.as_markup()]
+
+
+def _max_strict_thumb_deltas(text: str | None) -> tuple[int, int] | None:
+    """Только лайк/дизлайк, после strip; иначе None."""
+    if text is None:
+        return None
+    t = text.strip()
+    if t in _THUMB_UP:
+        return (1, 0)
+    if t in _THUMB_DOWN:
+        return (0, 1)
+    return None
+
+
+def _try_max_reply_thumb_reaction(db: Database, chat_id: int, msg: Message) -> bool:
+    """
+    Сообщение без вложений, текст строго 👍/👎, есть reply → реакция к parent.mid в БД.
+    """
+    body = msg.body
+    if not body or body.attachments:
+        return False
+    deltas = _max_strict_thumb_deltas(body.text)
+    if deltas is None:
+        return False
+    link = msg.link
+    if link is None or link.type != MessageLinkType.REPLY:
+        return False
+    parent = link.message
+    if parent is None or not parent.mid:
+        return False
+    parent_mid = str(parent.mid)
+    info = db.get_message_info(chat_id, parent_mid)
+    if info is None:
+        return False
+    topic_id, msg_date = info
+    pos, neg = deltas
+    db.update_reaction_count(
+        chat_id,
+        topic_id,
+        pos,
+        neg,
+        date=msg_date,
+        messenger=MESSENGER_MAX,
+    )
+    logger.info(
+        "MAX 👍/👎 reply: chat_id=%s parent_mid=%s %+d %+d дата_сообщения=%s",
+        chat_id,
+        parent_mid,
+        pos,
+        neg,
+        msg_date,
+    )
+    return True
 
 
 def _callback_group_chat_id(event: MessageCallback) -> int | None:
@@ -223,6 +282,10 @@ def setup_max_handlers(dp: Dispatcher, db: Database) -> None:
         if not _db.is_chat_active(chat_id):
             return
         _sync_chat_and_topic_title(_db, chat_id, event.chat)
+
+        if _try_max_reply_thumb_reaction(_db, chat_id, msg):
+            return
+
         topic_type = _db.get_topic_type(chat_id, MAX_TOPIC_ID)
         body = msg.body
         mid = body.mid if body else None

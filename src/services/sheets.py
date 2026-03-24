@@ -215,7 +215,7 @@ class GoogleSheetsService:
         Для каждой даты несколько строк (по филиалам).
         Топики с type='Не указан' игнорируются.
         Учитываются только строки image_counts с self.messenger (tg / max).
-        Для MAX лайки/дизлайки всегда 0 (реакции ведутся только из Telegram).
+        Реакции: для tg — нативные реакции Telegram; для max — ответы-реплаи с 👍/👎.
         """
         if not self.spreadsheet_id.strip():
             logger.warning(
@@ -256,15 +256,13 @@ class GoogleSheetsService:
                     )
                     row.append(count)  # 0 если нет данных
 
-                if self.messenger == MESSENGER_MAX:
-                    row.append(0)
-                    row.append(0)
-                else:
-                    positive_reactions, negative_reactions = (
-                        self.db.get_reaction_count_by_city_date(city, date)
+                positive_reactions, negative_reactions = (
+                    self.db.get_reaction_count_by_city_date(
+                        city, date, messenger=self.messenger
                     )
-                    row.append(positive_reactions)
-                    row.append(negative_reactions)
+                )
+                row.append(positive_reactions)
+                row.append(negative_reactions)
                 
                 rows.append(row)
 

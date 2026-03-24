@@ -77,14 +77,16 @@ class Database:
                 cursor.execute("ALTER TABLE topic_titles ADD COLUMN type TEXT NOT NULL DEFAULT 'Не указан'")
             
             # Таблица для хранения реакций (👍/👎) в топиках "Продукция"
+            # messenger: tg (нативные реакции Telegram) / max (ответ-реплай с 👍/👎 в MAX)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS reaction_counts (
                     chat_id INTEGER NOT NULL,
                     topic_id INTEGER NOT NULL DEFAULT 0,
                     date TEXT NOT NULL,
+                    messenger TEXT NOT NULL DEFAULT 'tg',
                     positive_count INTEGER NOT NULL DEFAULT 0,
                     negative_count INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (chat_id, topic_id, date)
+                    PRIMARY KEY (chat_id, topic_id, date, messenger)
                 )
             """)
             
@@ -103,6 +105,7 @@ class Database:
 
             self._migrate_message_topics_message_id_to_text(conn)
             self._migrate_image_counts_messenger(conn)
+            self._migrate_reaction_counts_messenger(conn)
 
             conn.commit()
 
@@ -185,6 +188,48 @@ class Database:
         cursor.execute("DROP TABLE image_counts")
         cursor.execute("ALTER TABLE image_counts_new RENAME TO image_counts")
         cursor.execute("PRAGMA user_version = 3")
+        conn.commit()
+
+    def _migrate_reaction_counts_messenger(self, conn: sqlite3.Connection) -> None:
+        """Миграция v4: reaction_counts.messenger, PK включает messenger (старое — tg)."""
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA user_version")
+        if cursor.fetchone()[0] >= 4:
+            return
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='reaction_counts'"
+        )
+        if not cursor.fetchone():
+            cursor.execute("PRAGMA user_version = 4")
+            conn.commit()
+            return
+        cursor.execute("PRAGMA table_info(reaction_counts)")
+        col_names = [row[1] for row in cursor.fetchall()]
+        if "messenger" in col_names:
+            cursor.execute("PRAGMA user_version = 4")
+            conn.commit()
+            return
+        cursor.execute("""
+            CREATE TABLE reaction_counts_new (
+                chat_id INTEGER NOT NULL,
+                topic_id INTEGER NOT NULL DEFAULT 0,
+                date TEXT NOT NULL,
+                messenger TEXT NOT NULL DEFAULT 'tg',
+                positive_count INTEGER NOT NULL DEFAULT 0,
+                negative_count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (chat_id, topic_id, date, messenger)
+            )
+        """)
+        cursor.execute("""
+            INSERT INTO reaction_counts_new (
+                chat_id, topic_id, date, messenger, positive_count, negative_count
+            )
+            SELECT chat_id, topic_id, date, 'tg', positive_count, negative_count
+            FROM reaction_counts
+        """)
+        cursor.execute("DROP TABLE reaction_counts")
+        cursor.execute("ALTER TABLE reaction_counts_new RENAME TO reaction_counts")
+        cursor.execute("PRAGMA user_version = 4")
         conn.commit()
 
     def _get_current_date(self) -> str:
@@ -304,9 +349,12 @@ class Database:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """SELECT DISTINCT date FROM image_counts
-                WHERE messenger = ? ORDER BY date""",
-                (messenger,),
+                """SELECT DISTINCT date FROM (
+                    SELECT date FROM image_counts WHERE messenger = ?
+                    UNION
+                    SELECT date FROM reaction_counts WHERE messenger = ?
+                ) ORDER BY date""",
+                (messenger, messenger),
             )
             return [row["date"] for row in cursor.fetchall()]
 
@@ -385,18 +433,26 @@ class Database:
         self, date: str, *, messenger: str = MESSENGER_TG
     ) -> list[str]:
         """
-        Возвращает список городов, у которых есть данные за указанную дату.
-        Учитывает только топики с установленным типом (не 'Не указан').
+        Города с данными за дату: фото (image_counts) и/или реакции (reaction_counts)
+        для указанного messenger.
         """
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """SELECT DISTINCT ac.city FROM active_chats ac
-                INNER JOIN image_counts ic ON ac.chat_id = ic.chat_id
-                INNER JOIN topic_titles tt ON ic.chat_id = tt.chat_id AND ic.topic_id = tt.topic_id
-                WHERE ic.date = ? AND ic.messenger = ? AND tt.type != 'Не указан'
-                ORDER BY ac.city""",
-                (date, messenger),
+                """SELECT DISTINCT city FROM (
+                    SELECT ac.city AS city FROM active_chats ac
+                    INNER JOIN image_counts ic ON ac.chat_id = ic.chat_id
+                    INNER JOIN topic_titles tt ON ic.chat_id = tt.chat_id
+                        AND ic.topic_id = tt.topic_id
+                    WHERE ic.date = ? AND ic.messenger = ? AND tt.type != 'Не указан'
+                    UNION
+                    SELECT ac.city FROM active_chats ac
+                    INNER JOIN reaction_counts rc ON ac.chat_id = rc.chat_id
+                    INNER JOIN topic_titles tt ON rc.chat_id = tt.chat_id
+                        AND rc.topic_id = tt.topic_id
+                    WHERE rc.date = ? AND rc.messenger = ? AND tt.type = 'Продукция'
+                ) ORDER BY city""",
+                (date, messenger, date, messenger),
             )
             return [row["city"] for row in cursor.fetchall()]
 
@@ -471,34 +527,46 @@ class Database:
         return f"{chat_title} | {topic_title}"
 
     def update_reaction_count(
-        self, 
-        chat_id: int, 
-        topic_id: int, 
-        positive_delta: int = 0, 
+        self,
+        chat_id: int,
+        topic_id: int,
+        positive_delta: int = 0,
         negative_delta: int = 0,
-        date: Optional[str] = None
+        date: Optional[str] = None,
+        *,
+        messenger: str = MESSENGER_TG,
     ) -> None:
         """
         Обновляет счётчик реакций (положительных/отрицательных).
         Дельта может быть положительной (добавление) или отрицательной (удаление).
-        
+
         Args:
             date: Дата для записи реакции. Если None - используется текущая дата.
-                  Обычно передаётся дата создания сообщения, чтобы реакция
-                  засчитывалась на тот день, когда было создано сообщение.
+            messenger: tg — Telegram; max — ответы-реплаи с 👍/👎 в MAX.
         """
         if date is None:
             date = self._get_current_date()
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """INSERT INTO reaction_counts (chat_id, topic_id, date, positive_count, negative_count)
-                VALUES (?, ?, ?, MAX(0, ?), MAX(0, ?))
-                ON CONFLICT(chat_id, topic_id, date) 
-                DO UPDATE SET 
+                """INSERT INTO reaction_counts (
+                    chat_id, topic_id, date, messenger, positive_count, negative_count
+                )
+                VALUES (?, ?, ?, ?, MAX(0, ?), MAX(0, ?))
+                ON CONFLICT(chat_id, topic_id, date, messenger)
+                DO UPDATE SET
                     positive_count = MAX(0, positive_count + ?),
                     negative_count = MAX(0, negative_count + ?)""",
-                (chat_id, topic_id, date, positive_delta, negative_delta, positive_delta, negative_delta)
+                (
+                    chat_id,
+                    topic_id,
+                    date,
+                    messenger,
+                    positive_delta,
+                    negative_delta,
+                    positive_delta,
+                    negative_delta,
+                ),
             )
             conn.commit()
 
@@ -510,7 +578,10 @@ class Database:
         *,
         created_at_date: Optional[str] = None,
     ) -> None:
-        """Сохраняет связь message_id -> topic_id для последующего определения топика при реакции."""
+        """
+        Сохраняет связь id сообщения → topic_id (для реакций / ответов).
+        В MAX в message_id хранится mid из API (строка).
+        """
         date = created_at_date if created_at_date is not None else self._get_current_date()
         mid = str(message_id)
         with self._get_connection() as conn:
@@ -574,7 +645,11 @@ class Database:
             return cursor.rowcount
 
     def get_reaction_count_by_city_date(
-        self, city: str, date: str
+        self,
+        city: str,
+        date: str,
+        *,
+        messenger: str = MESSENGER_TG,
     ) -> tuple[int, int]:
         """
         Возвращает сумму реакций (positive, negative) для города/даты.
@@ -582,38 +657,36 @@ class Database:
         """
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            
-            # Получаем все чаты с указанным городом
+
             cursor.execute(
                 "SELECT chat_id FROM active_chats WHERE city = ?",
-                (city,)
+                (city,),
             )
             chat_ids = [row["chat_id"] for row in cursor.fetchall()]
-            
+
             if not chat_ids:
                 return (0, 0)
-            
+
             total_positive = 0
             total_negative = 0
-            
+
             for chat_id in chat_ids:
-                # Находим все topic_id с типом "Продукция" в этом чате
                 cursor.execute(
                     "SELECT topic_id FROM topic_titles WHERE chat_id = ? AND type = ?",
-                    (chat_id, "Продукция")
+                    (chat_id, "Продукция"),
                 )
                 topic_ids = [row["topic_id"] for row in cursor.fetchall()]
-                
+
                 for topic_id in topic_ids:
                     cursor.execute(
-                        """SELECT positive_count, negative_count 
-                        FROM reaction_counts 
-                        WHERE chat_id = ? AND topic_id = ? AND date = ?""",
-                        (chat_id, topic_id, date)
+                        """SELECT positive_count, negative_count
+                        FROM reaction_counts
+                        WHERE chat_id = ? AND topic_id = ? AND date = ? AND messenger = ?""",
+                        (chat_id, topic_id, date, messenger),
                     )
                     row = cursor.fetchone()
                     if row:
                         total_positive += row["positive_count"]
                         total_negative += row["negative_count"]
-            
+
             return (total_positive, total_negative)
