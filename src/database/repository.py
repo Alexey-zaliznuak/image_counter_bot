@@ -85,17 +85,63 @@ class Database:
             
             # Таблица для хранения связи message_id -> topic_id
             # (нужна для определения топика при получении реакции)
+            # message_id TEXT: Telegram (int как строка) и MAX (mid строка)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS message_topics (
                     chat_id INTEGER NOT NULL,
-                    message_id INTEGER NOT NULL,
+                    message_id TEXT NOT NULL,
                     topic_id INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
                     PRIMARY KEY (chat_id, message_id)
                 )
             """)
-            
+
+            self._migrate_message_topics_message_id_to_text(conn)
+
             conn.commit()
+
+    def _migrate_message_topics_message_id_to_text(self, conn: sqlite3.Connection) -> None:
+        """Миграция v2: message_id INTEGER -> TEXT (Telegram + MAX)."""
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA user_version")
+        if cursor.fetchone()[0] >= 2:
+            return
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='message_topics'"
+        )
+        if not cursor.fetchone():
+            cursor.execute("PRAGMA user_version = 2")
+            conn.commit()
+            return
+        cursor.execute("PRAGMA table_info(message_topics)")
+        cols = {row[1]: (row[2] or "").upper() for row in cursor.fetchall()}
+        mid_declared = cols.get("message_id", "")
+        if mid_declared == "TEXT":
+            cursor.execute("PRAGMA user_version = 2")
+            conn.commit()
+            return
+        if mid_declared != "INTEGER":
+            cursor.execute("PRAGMA user_version = 2")
+            conn.commit()
+            return
+        cursor.execute("""
+            CREATE TABLE message_topics_new (
+                chat_id INTEGER NOT NULL,
+                message_id TEXT NOT NULL,
+                topic_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (chat_id, message_id)
+            )
+        """)
+        cursor.execute("""
+            INSERT INTO message_topics_new (chat_id, message_id, topic_id, created_at)
+            SELECT chat_id, CAST(message_id AS TEXT), topic_id, created_at
+            FROM message_topics
+        """)
+        cursor.execute("DROP TABLE message_topics")
+        cursor.execute("ALTER TABLE message_topics_new RENAME TO message_topics")
+        cursor.execute("PRAGMA user_version = 2")
+        conn.commit()
 
     def _get_current_date(self) -> str:
         tz = ZoneInfo(TIMEZONE)
@@ -113,6 +159,11 @@ class Database:
                 return True
             except sqlite3.IntegrityError:
                 return False
+
+    def ensure_active_chat(self, chat_id: int) -> None:
+        """Добавляет чат в отслеживаемые, если его ещё нет."""
+        if not self.is_chat_active(chat_id):
+            self.add_active_chat(chat_id)
 
     def remove_active_chat(self, chat_id: int) -> bool:
         with self._get_connection() as conn:
@@ -313,8 +364,6 @@ class Database:
             return row["title"] if row else str(chat_id)
 
     def get_topic_title(self, chat_id: int, topic_id: int) -> str:
-        if topic_id == 0:
-            return "General"
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -322,7 +371,11 @@ class Database:
                 (chat_id, topic_id)
             )
             row = cursor.fetchone()
-            return row["title"] if row else f"Топик {topic_id}"
+            if row:
+                return row["title"]
+        if topic_id == 0:
+            return "General"
+        return f"Топик {topic_id}"
 
     def get_display_name(self, chat_id: int, topic_id: int) -> str:
         chat_title = self.get_chat_title(chat_id)
@@ -361,50 +414,61 @@ class Database:
             )
             conn.commit()
 
-    def save_message_topic(self, chat_id: int, message_id: int, topic_id: int) -> None:
+    def save_message_topic(
+        self,
+        chat_id: int,
+        message_id: int | str,
+        topic_id: int,
+        *,
+        created_at_date: Optional[str] = None,
+    ) -> None:
         """Сохраняет связь message_id -> topic_id для последующего определения топика при реакции."""
-        date = self._get_current_date()
+        date = created_at_date if created_at_date is not None else self._get_current_date()
+        mid = str(message_id)
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """INSERT OR REPLACE INTO message_topics (chat_id, message_id, topic_id, created_at)
                 VALUES (?, ?, ?, ?)""",
-                (chat_id, message_id, topic_id, date)
+                (chat_id, mid, topic_id, date)
             )
             conn.commit()
 
-    def get_topic_by_message(self, chat_id: int, message_id: int) -> Optional[int]:
+    def get_topic_by_message(self, chat_id: int, message_id: int | str) -> Optional[int]:
         """Возвращает topic_id для сообщения или None если не найдено."""
+        mid = str(message_id)
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT topic_id FROM message_topics WHERE chat_id = ? AND message_id = ?",
-                (chat_id, message_id)
+                (chat_id, mid)
             )
             row = cursor.fetchone()
             return row["topic_id"] if row else None
 
-    def get_message_created_date(self, chat_id: int, message_id: int) -> Optional[str]:
+    def get_message_created_date(self, chat_id: int, message_id: int | str) -> Optional[str]:
         """Возвращает дату создания сообщения или None если не найдено."""
+        mid = str(message_id)
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT created_at FROM message_topics WHERE chat_id = ? AND message_id = ?",
-                (chat_id, message_id)
+                (chat_id, mid)
             )
             row = cursor.fetchone()
             return row["created_at"] if row else None
 
-    def get_message_info(self, chat_id: int, message_id: int) -> Optional[tuple[int, str]]:
+    def get_message_info(self, chat_id: int, message_id: int | str) -> Optional[tuple[int, str]]:
         """
         Возвращает (topic_id, created_at) для сообщения или None если не найдено.
         Оптимизация: один запрос вместо двух.
         """
+        mid = str(message_id)
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT topic_id, created_at FROM message_topics WHERE chat_id = ? AND message_id = ?",
-                (chat_id, message_id)
+                (chat_id, mid)
             )
             row = cursor.fetchone()
             return (row["topic_id"], row["created_at"]) if row else None

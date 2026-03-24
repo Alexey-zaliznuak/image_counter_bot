@@ -6,6 +6,7 @@ load_dotenv()
 
 # Telegram Bot
 BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
+MAX_BOT_TOKEN: str = os.getenv("MAX_BOT_TOKEN", "")
 
 # Google Sheets
 SPREADSHEET_ID: str = os.getenv("SPREADSHEET_ID", "")
