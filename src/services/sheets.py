@@ -7,12 +7,13 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from config import (
+    MAX_REPORT_SHEET_NAME,
     REPORT_SHEET_NAME,
     SERVICE_ACCOUNT_FILE,
-    SPREADSHEET_ID,
     SYNC_BATCH_SIZE,
 )
 from database import Database
+from database.repository import MESSENGER_MAX, MESSENGER_TG
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +39,20 @@ REACTION_COLUMNS = [
 
 
 class GoogleSheetsService:
-    def __init__(self, db: Database):
+    def __init__(
+        self,
+        db: Database,
+        spreadsheet_id: str,
+        messenger: str = MESSENGER_TG,
+    ):
         self.db = db
-        self.spreadsheet_id = SPREADSHEET_ID
-        self.sheet_name = REPORT_SHEET_NAME
+        self.spreadsheet_id = spreadsheet_id
+        self.messenger = messenger
+        self.sheet_name = (
+            MAX_REPORT_SHEET_NAME
+            if messenger == MESSENGER_MAX
+            else REPORT_SHEET_NAME
+        )
         self._service = None
 
     def _get_service(self) -> Any:
@@ -203,11 +214,21 @@ class GoogleSheetsService:
         Структура: Дата | Филиал | Продукция | Списание Продуктов | ... | Обсуждение | Лайки | Дизлайки
         Для каждой даты несколько строк (по филиалам).
         Топики с type='Не указан' игнорируются.
+        Учитываются только строки image_counts с self.messenger (tg / max).
+        Для MAX лайки/дизлайки всегда 0 (реакции ведутся только из Telegram).
         """
-        logger.info("Начало синхронизации с Google Sheets")
+        if not self.spreadsheet_id.strip():
+            logger.warning(
+                "Пропуск синхронизации: пустой spreadsheet_id (messenger=%s)",
+                self.messenger,
+            )
+            return
 
-        # Получаем данные из БД
-        dates = self.db.get_unique_dates()
+        logger.info(
+            "Начало синхронизации с Google Sheets (messenger=%s)", self.messenger
+        )
+
+        dates = self.db.get_unique_dates_for_messenger(self.messenger)
         
         if not dates:
             logger.info("Нет данных для синхронизации")
@@ -220,7 +241,9 @@ class GoogleSheetsService:
         rows: list[list[Any]] = []
         for date in dates:
             # Получаем города с данными за эту дату (только с топиками у которых установлен тип)
-            cities = self.db.get_cities_with_data_for_date(date)
+            cities = self.db.get_cities_with_data_for_date(
+                date, messenger=self.messenger
+            )
             
             formatted_date = self._format_date(date)
             
@@ -228,13 +251,20 @@ class GoogleSheetsService:
                 row = [formatted_date, city]
                 # Добавляем количество фото по типам
                 for topic_type in TOPIC_TYPES:
-                    count = self.db.get_image_count_by_city_type_date(city, topic_type, date)
+                    count = self.db.get_image_count_by_city_type_date(
+                        city, topic_type, date, messenger=self.messenger
+                    )
                     row.append(count)  # 0 если нет данных
-                
-                # Добавляем реакции (только для топиков "Продукция")
-                positive_reactions, negative_reactions = self.db.get_reaction_count_by_city_date(city, date)
-                row.append(positive_reactions)
-                row.append(negative_reactions)
+
+                if self.messenger == MESSENGER_MAX:
+                    row.append(0)
+                    row.append(0)
+                else:
+                    positive_reactions, negative_reactions = (
+                        self.db.get_reaction_count_by_city_date(city, date)
+                    )
+                    row.append(positive_reactions)
+                    row.append(negative_reactions)
                 
                 rows.append(row)
 

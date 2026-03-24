@@ -1,8 +1,9 @@
 import asyncio
 import logging
 
-from config import SYNC_INTERVAL_MINUTES
+from config import SPREADSHEET_ID, SYNC_INTERVAL_MINUTES
 from database import Database
+from database.repository import MESSENGER_MAX, MESSENGER_TG
 from services.sheets import GoogleSheetsService
 
 logger = logging.getLogger(__name__)
@@ -13,10 +14,17 @@ CLEANUP_INTERVAL_HOURS = 1
 CLEANUP_AGE_DAYS = 90
 
 
+def _sync_all_sheets(db: Database) -> None:
+    """Одна книга SPREADSHEET_ID: лист REPORT_SHEET_NAME (TG) и MAX_REPORT_SHEET_NAME (MAX)."""
+    if not SPREADSHEET_ID.strip():
+        return
+    GoogleSheetsService(db, SPREADSHEET_ID, MESSENGER_TG).sync_to_sheets()
+    GoogleSheetsService(db, SPREADSHEET_ID, MESSENGER_MAX).sync_to_sheets()
+
+
 class SyncScheduler:
     def __init__(self, db: Database):
         self.db = db
-        self.sheets_service = GoogleSheetsService(db)
         self._sync_task: asyncio.Task | None = None
         self._cleanup_task: asyncio.Task | None = None
         self._running = False
@@ -28,7 +36,7 @@ class SyncScheduler:
                 logger.info("Запуск плановой синхронизации...")
                 # Запускаем синхронизацию в отдельном потоке, т.к. она блокирующая
                 await asyncio.get_event_loop().run_in_executor(
-                    None, self.sheets_service.sync_to_sheets
+                    None, _sync_all_sheets, self.db
                 )
             except Exception as e:
                 logger.error(f"Ошибка синхронизации: {e}", exc_info=True)
@@ -84,6 +92,6 @@ class SyncScheduler:
         """Принудительная синхронизация."""
         logger.info("Принудительная синхронизация...")
         await asyncio.get_event_loop().run_in_executor(
-            None, self.sheets_service.sync_to_sheets
+            None, _sync_all_sheets, self.db
         )
 

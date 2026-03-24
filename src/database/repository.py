@@ -6,6 +6,10 @@ from zoneinfo import ZoneInfo
 
 from config import DATABASE_PATH, TIMEZONE
 
+# Значение в колонке image_counts.messenger; для существующих строк по умолчанию TG.
+MESSENGER_TG = "tg"
+MESSENGER_MAX = "max"
+
 
 class Database:
     def __init__(self, db_path: str = DATABASE_PATH):
@@ -43,8 +47,9 @@ class Database:
                     chat_id INTEGER NOT NULL,
                     topic_id INTEGER NOT NULL DEFAULT 0,
                     date TEXT NOT NULL,
+                    messenger TEXT NOT NULL DEFAULT 'tg',
                     count INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (chat_id, topic_id, date)
+                    PRIMARY KEY (chat_id, topic_id, date, messenger)
                 )
             """)
             
@@ -97,6 +102,7 @@ class Database:
             """)
 
             self._migrate_message_topics_message_id_to_text(conn)
+            self._migrate_image_counts_messenger(conn)
 
             conn.commit()
 
@@ -141,6 +147,44 @@ class Database:
         cursor.execute("DROP TABLE message_topics")
         cursor.execute("ALTER TABLE message_topics_new RENAME TO message_topics")
         cursor.execute("PRAGMA user_version = 2")
+        conn.commit()
+
+    def _migrate_image_counts_messenger(self, conn: sqlite3.Connection) -> None:
+        """Миграция v3: колонка messenger и составной PK (старые строки — messenger='tg')."""
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA user_version")
+        if cursor.fetchone()[0] >= 3:
+            return
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='image_counts'"
+        )
+        if not cursor.fetchone():
+            cursor.execute("PRAGMA user_version = 3")
+            conn.commit()
+            return
+        cursor.execute("PRAGMA table_info(image_counts)")
+        col_names = [row[1] for row in cursor.fetchall()]
+        if "messenger" in col_names:
+            cursor.execute("PRAGMA user_version = 3")
+            conn.commit()
+            return
+        cursor.execute("""
+            CREATE TABLE image_counts_new (
+                chat_id INTEGER NOT NULL,
+                topic_id INTEGER NOT NULL DEFAULT 0,
+                date TEXT NOT NULL,
+                messenger TEXT NOT NULL DEFAULT 'tg',
+                count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (chat_id, topic_id, date, messenger)
+            )
+        """)
+        cursor.execute("""
+            INSERT INTO image_counts_new (chat_id, topic_id, date, count, messenger)
+            SELECT chat_id, topic_id, date, count, 'tg' FROM image_counts
+        """)
+        cursor.execute("DROP TABLE image_counts")
+        cursor.execute("ALTER TABLE image_counts_new RENAME TO image_counts")
+        cursor.execute("PRAGMA user_version = 3")
         conn.commit()
 
     def _get_current_date(self) -> str:
@@ -198,16 +242,23 @@ class Database:
             row = cursor.fetchone()
             return row["city"] if row else "Не указан"
 
-    def increment_image_count(self, chat_id: int, topic_id: int = 0, count: int = 1) -> None:
+    def increment_image_count(
+        self,
+        chat_id: int,
+        topic_id: int = 0,
+        count: int = 1,
+        *,
+        messenger: str = MESSENGER_TG,
+    ) -> None:
         date = self._get_current_date()
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """INSERT INTO image_counts (chat_id, topic_id, date, count)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(chat_id, topic_id, date) 
+                """INSERT INTO image_counts (chat_id, topic_id, date, messenger, count)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(chat_id, topic_id, date, messenger)
                 DO UPDATE SET count = count + ?""",
-                (chat_id, topic_id, date, count, count)
+                (chat_id, topic_id, date, messenger, count, count)
             )
             conn.commit()
 
@@ -215,29 +266,48 @@ class Database:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """SELECT chat_id, topic_id, date, count
+                """SELECT chat_id, topic_id, date, messenger, count
                 FROM image_counts
-                ORDER BY date, chat_id, topic_id"""
+                ORDER BY date, messenger, chat_id, topic_id"""
             )
             return [
-                {"chat_id": row["chat_id"], "topic_id": row["topic_id"], 
-                 "date": row["date"], "count": row["count"]}
+                {
+                    "chat_id": row["chat_id"],
+                    "topic_id": row["topic_id"],
+                    "date": row["date"],
+                    "messenger": row["messenger"],
+                    "count": row["count"],
+                }
                 for row in cursor.fetchall()
             ]
 
-    def get_unique_chat_topics(self) -> list[tuple[int, int]]:
+    def get_unique_chat_topics(
+        self, messenger: str | None = None
+    ) -> list[tuple[int, int]]:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if messenger is None:
+                cursor.execute(
+                    """SELECT chat_id, topic_id FROM image_counts
+                    GROUP BY chat_id, topic_id ORDER BY MIN(rowid)"""
+                )
+            else:
+                cursor.execute(
+                    """SELECT chat_id, topic_id FROM image_counts
+                    WHERE messenger = ?
+                    GROUP BY chat_id, topic_id ORDER BY MIN(rowid)""",
+                    (messenger,),
+                )
+            return [(row["chat_id"], row["topic_id"]) for row in cursor.fetchall()]
+
+    def get_unique_dates_for_messenger(self, messenger: str) -> list[str]:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                """SELECT chat_id, topic_id FROM image_counts
-                GROUP BY chat_id, topic_id ORDER BY MIN(rowid)"""
+                """SELECT DISTINCT date FROM image_counts
+                WHERE messenger = ? ORDER BY date""",
+                (messenger,),
             )
-            return [(row["chat_id"], row["topic_id"]) for row in cursor.fetchall()]
-
-    def get_unique_dates(self) -> list[str]:
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT date FROM image_counts ORDER BY date")
             return [row["date"] for row in cursor.fetchall()]
 
     def get_unique_cities(self) -> list[str]:
@@ -246,17 +316,32 @@ class Database:
             cursor.execute("SELECT DISTINCT city FROM active_chats ORDER BY city")
             return [row["city"] for row in cursor.fetchall()]
 
-    def get_image_count(self, chat_id: int, topic_id: int, date: str) -> int:
+    def get_image_count(
+        self,
+        chat_id: int,
+        topic_id: int,
+        date: str,
+        *,
+        messenger: str = MESSENGER_TG,
+    ) -> int:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT count FROM image_counts WHERE chat_id = ? AND topic_id = ? AND date = ?",
-                (chat_id, topic_id, date)
+                """SELECT count FROM image_counts
+                WHERE chat_id = ? AND topic_id = ? AND date = ? AND messenger = ?""",
+                (chat_id, topic_id, date, messenger),
             )
             row = cursor.fetchone()
             return row["count"] if row else 0
 
-    def get_image_count_by_city_type_date(self, city: str, topic_type: str, date: str) -> int:
+    def get_image_count_by_city_type_date(
+        self,
+        city: str,
+        topic_type: str,
+        date: str,
+        *,
+        messenger: str = MESSENGER_TG,
+    ) -> int:
         """
         Возвращает сумму изображений для города/типа топика/даты.
         Суммирует по всем чатам с указанным городом и топикам с указанным типом.
@@ -286,8 +371,9 @@ class Database:
                 
                 for topic_id in topic_ids:
                     cursor.execute(
-                        "SELECT count FROM image_counts WHERE chat_id = ? AND topic_id = ? AND date = ?",
-                        (chat_id, topic_id, date)
+                        """SELECT count FROM image_counts
+                        WHERE chat_id = ? AND topic_id = ? AND date = ? AND messenger = ?""",
+                        (chat_id, topic_id, date, messenger),
                     )
                     count_row = cursor.fetchone()
                     if count_row:
@@ -295,7 +381,9 @@ class Database:
             
             return total
 
-    def get_cities_with_data_for_date(self, date: str) -> list[str]:
+    def get_cities_with_data_for_date(
+        self, date: str, *, messenger: str = MESSENGER_TG
+    ) -> list[str]:
         """
         Возвращает список городов, у которых есть данные за указанную дату.
         Учитывает только топики с установленным типом (не 'Не указан').
@@ -306,9 +394,9 @@ class Database:
                 """SELECT DISTINCT ac.city FROM active_chats ac
                 INNER JOIN image_counts ic ON ac.chat_id = ic.chat_id
                 INNER JOIN topic_titles tt ON ic.chat_id = tt.chat_id AND ic.topic_id = tt.topic_id
-                WHERE ic.date = ? AND tt.type != 'Не указан'
+                WHERE ic.date = ? AND ic.messenger = ? AND tt.type != 'Не указан'
                 ORDER BY ac.city""",
-                (date,)
+                (date, messenger),
             )
             return [row["city"] for row in cursor.fetchall()]
 

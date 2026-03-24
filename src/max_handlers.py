@@ -30,6 +30,7 @@ from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from bot.handlers import TOPIC_TYPES
 from config import COUNT_EACH_PHOTO_IN_ALBUM, TIMEZONE
 from database import Database
+from database.repository import MESSENGER_MAX
 
 logger = logging.getLogger(__name__)
 
@@ -234,6 +235,8 @@ def setup_max_handlers(dp: Dispatcher, db: Database) -> None:
         if n_img == 0:
             return
         inc = n_img if COUNT_EACH_PHOTO_IN_ALBUM else 1
-        _db.increment_image_count(chat_id, MAX_TOPIC_ID, inc)
+        _db.increment_image_count(
+            chat_id, MAX_TOPIC_ID, inc, messenger=MESSENGER_MAX
+        )
         display = _db.get_display_name(chat_id, MAX_TOPIC_ID)
         logger.info("MAX фото: %s, +%s", display, inc)

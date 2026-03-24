@@ -8,13 +8,16 @@ load_dotenv()
 BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
 MAX_BOT_TOKEN: str = os.getenv("MAX_BOT_TOKEN", "")
 
-# Google Sheets
+# Google Sheets (одна книга: TG и MAX — разные листы)
 SPREADSHEET_ID: str = os.getenv("SPREADSHEET_ID", "")
 SERVICE_ACCOUNT_EMAIL: str = os.getenv("SERVICE_ACCOUNT_EMAIL", "")
 SERVICE_ACCOUNT_FILE: str = "service_account.json"
 
-# Sheet settings
-REPORT_SHEET_NAME: str = "Отчет по фотографиям"
+# Имена листов внутри SPREADSHEET_ID
+REPORT_SHEET_NAME: str = os.getenv("REPORT_SHEET_NAME", "Отчет по фотографиям")
+MAX_REPORT_SHEET_NAME: str = os.getenv(
+    "MAX_REPORT_SHEET_NAME", "Отчет по фотографиям MAX"
+)
 
 # Sync settings
 SYNC_INTERVAL_MINUTES: int = 5
