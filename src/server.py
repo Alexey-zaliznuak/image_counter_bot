@@ -10,8 +10,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import sys
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 _SRC = Path(__file__).resolve().parent
 if str(_SRC) not in sys.path:
@@ -30,6 +33,28 @@ from max_handlers import (
 from maxapi import Bot
 from maxapi.types.input_media import InputMediaBuffer
 
+
+def setup_logging() -> None:
+    """Консоль + logs/<дата>/mobile_server.log — как у max.log / log.log."""
+    tz = ZoneInfo(config.TIMEZONE)
+    date_str = datetime.now(tz).strftime("%Y-%m-%d")
+    log_dir = f"logs/{date_str}"
+    os.makedirs(log_dir, exist_ok=True)
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(
+                f"{log_dir}/mobile_server.log", encoding="utf-8"
+            ),
+        ],
+        force=True,
+    )
+
+
+setup_logging()
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -168,5 +193,4 @@ def health():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     app.run(host="0.0.0.0", port=config.FLASK_PORT, threaded=True)
