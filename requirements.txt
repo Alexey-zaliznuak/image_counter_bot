@@ -6,3 +6,4 @@ google-auth-oauthlib==1.2.1
 google-auth-httplib2==0.2.0
 tzdata==2024.2
 maxapi>=0.1.0
+flask>=3.0.0

@@ -287,6 +287,25 @@ class Database:
             row = cursor.fetchone()
             return row["city"] if row else "Не указан"
 
+    def find_max_chat_ids_by_city_type(self, city: str, topic_type: str) -> list[int]:
+        """
+        MAX: топик учёта с topic_id=0. Активные чаты, у которых в topic_titles
+        для topic_id=0 указан тип и в active_chats — город.
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT ac.chat_id FROM active_chats ac
+                INNER JOIN topic_titles tt
+                    ON tt.chat_id = ac.chat_id AND tt.topic_id = 0
+                WHERE ac.city = ? AND tt.type = ?
+                ORDER BY ac.chat_id
+                """,
+                (city, topic_type),
+            )
+            return [row["chat_id"] for row in cursor.fetchall()]
+
     def increment_image_count(
         self,
         chat_id: int,

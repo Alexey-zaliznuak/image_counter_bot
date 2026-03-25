@@ -1,19 +1,21 @@
-git pull && sudo systemctl restart image_counter_bot.service
-cp ./image_counter_bot.service /etc/systemd/system/image_counter_bot.service
-
-# Перечитать конфигурацию systemd
+git pull
 sudo systemctl daemon-reload
+sudo systemctl restart image_counter_max_bot.service
+sudo systemctl restart image_counter_bot.service
+sudo systemctl restart image_counter_server_for_mobiles.service
 
-# Запустить сервис
+
+sudo cp /root/image_counter_bot/image_counter_bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
 sudo systemctl start image_counter_bot.service
-
-# Включить автозапуск при загрузке
 sudo systemctl enable image_counter_bot.service
-
-
-
 
 sudo cp /root/image_counter_bot/image_counter_max_bot.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now image_counter_max_bot.service
 sudo systemctl status image_counter_max_bot.service
+
+sudo cp /root/image_counter_bot/image_counter_server_for_mobiles.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now image_counter_server_for_mobiles.service
+sudo systemctl status image_counter_server_for_mobiles.service

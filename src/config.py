@@ -34,3 +34,7 @@ COUNT_EACH_PHOTO_IN_ALBUM: bool = True
 # Database
 DATABASE_PATH: str = "data/bot.db"
 
+# HTTP-приём фото для MAX (src/server.py)
+FLASK_PORT: int = int(os.getenv("FLASK_PORT", "3001"))
+# Если задан — заголовок X-Ingest-Secret должен совпадать (иначе 401)
+HTTP_INGEST_SECRET: str = os.getenv("HTTP_INGEST_SECRET", "").strip()
