@@ -23,6 +23,7 @@ if str(_SRC) not in sys.path:
 from flask import Flask, jsonify, request
 
 import config
+from bot.handlers import TOPIC_TYPES
 from database import Database
 from database.repository import MESSENGER_MAX
 from max_handlers import (
@@ -185,6 +186,14 @@ def ingest_photo():
     return jsonify(
         {"ok": True, "chat_id": chat_id, "message_id": mid, "counted": inc}
     )
+
+
+@app.get("/meta")
+def meta_cities_types():
+    """Справочник для клиента: города из active_chats, типы — как в боте /set_type."""
+    db = get_db()
+    cities = db.get_unique_cities()
+    return jsonify({"cities": cities, "types": list(TOPIC_TYPES)})
 
 
 @app.get("/health")
